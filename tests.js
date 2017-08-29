@@ -1,5 +1,7 @@
 import {Mongo} from 'meteor/mongo'
 import _ from 'lodash'
+import denormalize from 'meteor/herteby:denormalize'
+denormalize.debug = true
 
 Posts = new Mongo.Collection('posts')
 Comments = new Mongo.Collection('comments')
@@ -328,7 +330,8 @@ Posts.cache({
 	referenceField:'nested.images:_id',
 	fields:{filename:1}
 })
-console.log(Posts)
+
+
 
 describe('Same tests with nested referenceFields!🚀', function(){
 	describe('Insert parent - no children', function(){

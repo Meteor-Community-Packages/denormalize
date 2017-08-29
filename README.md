@@ -37,7 +37,7 @@ ParentCollection.cache({
 	<tr>
 		<td>fields</td>
 		<td>Array of Strings or Object</td>
-		<td>The fields to include in the cache. It can either look like <code>['username', 'profile.email']</code> or <code>{username:1, profile:{email:1}}. For "many" and "inversed", _id will always be included.</code></td>
+		<td>The fields to include in the cache. It can either look like <code>['username', 'profile.email']</code> or <code>{username:1, profile:{email:1}}</code>. For "many" and "inversed", _id will always be included.</td>
 	</tr>
 	<tr>
 		<td>referenceField</td>
@@ -56,9 +56,10 @@ ParentCollection.cache({
 	</tr>
 </table>
 
-### Nested referenceFields
-For 'single' and 'inverse', nested referenceFields are simply declared like `'nested.reference.field'`
-For 'many', if the referenceField is an Array containing objects, a colon is used to show where the Array starts.
+## Nested referenceFields
+For "single" and "inverse", nested referenceFields are simply declared like `referenceField:'nested.reference.field'`
+
+For "many", if the referenceField is an Array containing objects, a colon is used to show where the Array starts.
 
 **Example:**
 If the parent doc looks like this:
@@ -75,5 +76,5 @@ The referenceField string should be `'references.users:_id'`
 
 ```
 meteor test-packages packages/denormalize --driver-package=practicalmeteor:mocha
-open localhost:3000 in browser
 ```
+open localhost:3000 in your browser

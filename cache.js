@@ -1,11 +1,13 @@
 import _ from 'lodash'
 
-debug = true
+let settings = {}
+export default settings
 log = function(){
-	if(debug){
+	if(settings.debug){
 		console.log(...arguments)
 	}
 }
+
 flattenFields = function(object, prefix){
 	prefix = prefix || ''
 	let fields = []
