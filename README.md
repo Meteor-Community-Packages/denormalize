@@ -56,7 +56,22 @@ ParentCollection.cache({
 	</tr>
 </table>
 
-## Test the package
+### Nested referenceFields
+For 'single' and 'inverse', nested referenceFields are simply declared like `'nested.reference.field'`
+For 'many', if the referenceField is an Array containing objects, a colon is used to show where the Array starts.
+
+**Example:**
+If the parent doc looks like this:
+```javascript
+{
+  references:{
+    users:[{_id:'user1'}, {_id:'user2'}]
+  }
+}
+```
+The referenceField string should be `'references.users:_id'`
+
+## Testing the package
 
 ```
 meteor test-packages packages/denormalize --driver-package=practicalmeteor:mocha
