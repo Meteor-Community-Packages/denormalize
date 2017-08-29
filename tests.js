@@ -200,7 +200,6 @@ describe('Type: many', function(){
 		let dog = Images.findOne('dog')
 		let horse = Images.findOne('horse')
 		it('cache should have correct children', function(){
-			console.log(post._images)
 			assert.deepEqual(post._images, [dog, horse])
 		})
 	})
@@ -290,7 +289,6 @@ describe('Type: inversed', function(){
 		let post = Posts.findOne('post4')
 		let comments = Comments.find().fetch()
 		it('cache should contain all children', function(){
-			console.log(post._images)
 			assert.deepEqual(post._comments, comments)
 		})
 	})

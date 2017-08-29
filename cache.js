@@ -59,7 +59,6 @@ Mongo.Collection.prototype.cache = function(options){
 
 		if(type == 'inversed'){
 			let children = childCollection.find({[referenceField]:parent._id}, childOpts).fetch()
-			console.log('CHILDREN', children)
 			parentCollection.update(parent._id, {$set:{[cacheField]:children}})
 		} else if(type == 'many'){
 			if(parent[referenceField]){
