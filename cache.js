@@ -61,25 +61,25 @@ Mongo.Collection.prototype.cache = function(options){
 			let children = childCollection.find({[referenceField]:parent._id}, childOpts).fetch()
 			parentCollection.update(parent._id, {$set:{[cacheField]:children}})
 		} else if(type == 'many'){
-			if(parent[referenceField]){
-				let children = childCollection.find({_id:{$in:parent[referenceField]}}, childOpts).fetch()
+			if(_.get(parent, referenceField)){
+				let children = childCollection.find({_id:{$in:_.get(parent, referenceField)}}, childOpts).fetch()
 				parentCollection.update(parent._id, {$set:{[cacheField]:children}})
 			} else {
 				parentCollection.update(parent._id, {$set:{[cacheField]:[]}})
 			}
-		} else if(parent[referenceField]){ //type == 'single'
-			let child = childCollection.findOne(parent[referenceField], childOpts)
+		} else if(_.get(parent, referenceField)){ //type == 'single'
+			let child = childCollection.findOne(_.get(parent, referenceField), childOpts)
 			if(child){
 				parentCollection.update(parent._id, {$set:{[cacheField]:child}})
 			}
 		}
 	})
 	parentCollection.after.update(function(userId, parent, fieldNames){
-		if(_.includes(fieldNames, referenceField)){ //Only update if the referenceField was changed
+		if(_.includes(fieldNames, referenceField.split('.')[0])){ //Only update if the referenceField was changed
 			log('PARENT - UPDATE', parent._id)
 			log('cache', childCollection._name, 'to', options.cacheField, 'in', parentCollection._name)
 
-			if(!parent[referenceField]){
+			if(!_.get(parent, referenceField)){
 				if(type == 'inversed' || type == 'many'){ //Should always have at least an empty array
 					parentCollection.update(parent._id, {$set:{[cacheField]:[]}})
 				}
@@ -87,10 +87,10 @@ Mongo.Collection.prototype.cache = function(options){
 				let children = childCollection.find({[referenceField]:parent._id}, childOpts).fetch()
 				parentCollection.update(parent._id, {$set:{[cacheField]:children}})
 			} else if(type == 'many'){
-				let children = childCollection.find({_id:{$in:parent[referenceField]}}, childOpts).fetch()
+				let children = childCollection.find({_id:{$in:_.get(parent, referenceField)}}, childOpts).fetch()
 				parentCollection.update(parent._id, {$set:{[cacheField]:children}})
 			} else { //type == 'single'
-				let child = parent[referenceField] && childCollection.findOne(parent[referenceField], childOpts)
+				let child = _.get(parent, referenceField) && childCollection.findOne(_.get(parent, referenceField), childOpts)
 				if(child){
 					parentCollection.update(parent._id, {$set:{[cacheField]:child}})
 				} else {
@@ -106,8 +106,8 @@ Mongo.Collection.prototype.cache = function(options){
 		let pickedChild = _.pick(child, watchedFields)
 
 		if(type == 'inversed'){
-			if(child[referenceField]){
-				parentCollection.update({_id:child[referenceField]}, {$push:{[cacheField]:pickedChild}})
+			if(_.get(child, referenceField)){
+				parentCollection.update({_id:_.get(child, referenceField)}, {$push:{[cacheField]:pickedChild}})
 			}
 		} else if(type == 'many'){
 			parentCollection.update({[referenceField]:child._id}, {$push:{[cacheField]:pickedChild}}, {multi:true})
@@ -123,11 +123,11 @@ Mongo.Collection.prototype.cache = function(options){
 			let pickedChild = _.pick(child, watchedFields)
 
 			if(type == 'inversed'){
-				let previousId = this.previous && this.previous[referenceField]
-				if(previousId && previousId !== child[referenceField]){
+				let previousId = this.previous && _.get(this.previous, referenceField)
+				if(previousId && previousId !== _.get(child, referenceField)){
 					parentCollection.update({_id:previousId}, {$pull:{[cacheField]:{_id:child._id}}})
 				}
-				parentCollection.find({_id:child[referenceField]}, parentOpts).forEach(parent => {
+				parentCollection.find({_id:_.get(child, referenceField)}, parentOpts).forEach(parent => {
 					let index = _.findIndex(parent[cacheField], {_id:child._id})
 					if(index > -1){
 						parentCollection.update(parent._id, {$set:{[cacheField + '.' + index]:pickedChild}})
@@ -154,7 +154,7 @@ Mongo.Collection.prototype.cache = function(options){
 		log('cache', childCollection._name, 'to', options.cacheField, 'in', parentCollection._name)
 
 		if(type == 'inversed'){
-			parentCollection.update({_id:child[referenceField]}, {$pull:{[cacheField]:{_id:child._id}}})
+			parentCollection.update({_id:_.get(child, referenceField)}, {$pull:{[cacheField]:{_id:child._id}}})
 		} else if(type == 'many'){
 			parentCollection.update({[referenceField]:child._id}, {$pull:{[cacheField]:{_id:child._id}}}, {multi:true})
 		} else { //type == 'single'

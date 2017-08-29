@@ -15,7 +15,7 @@ Posts.cache({
 	type:'single',
 	collection:Users,
 	cacheField:'_author',
-	referenceField:'authorId',
+	referenceField:'nested.authorId',
 	fields:{
 		username:1, 
 		profile:{
@@ -28,7 +28,7 @@ Posts.cache({
 	type:'inversed',
 	collection:Comments,
 	cacheField:'_comments',
-	referenceField:'postId',
+	referenceField:'nested.postId',
 	fields:{message:1},
 })
 Posts.cache({
@@ -42,7 +42,7 @@ Posts.cache({
 describe('Insert parent - no children', function(){
 	Posts.insert({
 		_id:'post1',
-		authorId:'user1',
+		nested:{authorId:'user1'},
 		imageIds:['dog', 'cat']
 	})
 	let post = Posts.findOne('post1')
@@ -92,7 +92,7 @@ describe('Type: single', function(){
 				last_name:'Henriksson'
 			}
 		})
-		Posts.update('post1', {$set:{authorId:'user2'}})
+		Posts.update('post1', {$set:{'nested.authorId':'user2'}})
 		let post = Posts.findOne('post1')
 		let user = Users.findOne('user2', {fields:{_id:0}})
 		it('cache should reflect the new child', function(){
@@ -109,7 +109,7 @@ describe('Type: single', function(){
 	describe('Insert another parent', function(){
 		Posts.insert({
 			_id:'post2',
-			authorId:'user1'
+			nested:{authorId:'user1'}
 		})
 		let post = Posts.findOne('post2')
 		let user = Users.findOne('user1', {fields:{_id:0}})
@@ -211,7 +211,7 @@ describe('Type: inversed', function(){
 		Comments.insert({
 			_id:'comment1',
 			message:'Hello world!',
-			postId:'post1'
+			nested:{postId:'post1'}
 		})
 		let post = Posts.findOne('post1')
 		let comment = Comments.findOne('comment1')
@@ -223,7 +223,7 @@ describe('Type: inversed', function(){
 		Comments.insert({
 			_id:'comment2',
 			message:'Hello world!',
-			postId:'post1'
+			nested:{postId:'post1'}
 		})
 		let post = Posts.findOne('post1')
 		let comment1 = Comments.findOne('comment1')
@@ -245,7 +245,7 @@ describe('Type: inversed', function(){
 		})
 	})
 	describe('Update child referenceField', function(){
-		Comments.update('comment3', {$set:{postId:'post1'}})
+		Comments.update('comment3', {$set:{'nested.postId':'post1'}})
 		let post = Posts.findOne('post1')
 		let comment1 = Comments.findOne('comment1')
 		let comment2 = Comments.findOne('comment2')
@@ -274,7 +274,7 @@ describe('Type: inversed', function(){
 		})
 	})
 	describe('Remove parent from child referenceField', function(){
-		Comments.update('comment3', {$unset:{postId:1}})
+		Comments.update('comment3', {$unset:{'nested.postId':1}})
 		let post = Posts.findOne('post1')
 		let comment1 = Comments.findOne('comment1')
 		it('cache should only contain remaining child', function(){
@@ -282,7 +282,7 @@ describe('Type: inversed', function(){
 		})
 	})
 	describe('Insert another parent', function(){
-		Comments.update({}, {$set:{postId:'post4'}}, {multi:true})
+		Comments.update({}, {$set:{'nested.postId':'post4'}}, {multi:true})
 		Posts.insert({
 			_id:'post4'
 		})
