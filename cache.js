@@ -127,7 +127,7 @@ Mongo.Collection.prototype.cache = function(options){
 		})
 
 		parentCollection.after.update(function(userId, parent, fieldNames){
-			if(_.includes(fieldNames, referenceField.split('.')[0])){
+			if(_.includes(fieldNames, referencePath.split('.')[0])){
 				let references = getNestedReferences(parent)
 				if(references.length){
 					let children = childCollection.find({_id:{$in:references}}, childOpts).fetch()
@@ -220,7 +220,7 @@ Mongo.Collection.prototype.cache = function(options){
 		})
 
 		parentCollection.after.update(function(userId, parent, fieldNames){
-			if(_.includes(fieldNames, referenceField.split('.')[0])){
+			if(_.includes(fieldNames, referencePath.split('.')[0])){
 				let children = childCollection.find({[referencePath]:parent._id}, childOpts).fetch()
 				parentCollection.update(parent._id, {$set:{[cacheField]:children}})
 			}
