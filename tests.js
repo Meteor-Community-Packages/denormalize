@@ -742,7 +742,6 @@ describe('Same tests with nested referenceFields!🚀', function(){
 
 	describe('Type: many-inversed', function(){
 		describe('Insert child', function(){
-			console.log('Insert child')
 			Tags.insert({
 				_id:'tag1',
 				name:'Red',
@@ -763,7 +762,6 @@ describe('Same tests with nested referenceFields!🚀', function(){
 			})
 		})
 		describe('Insert another child', function(){
-			console.log('Insert another child')
 			Tags.insert({
 				_id:'tag2',
 				name:'Blue',
@@ -781,7 +779,6 @@ describe('Same tests with nested referenceFields!🚀', function(){
 			})
 		})
 		describe('Insert unlinked child', function(){
-			console.log('Insert unlinked child')
 			Tags.insert({
 				_id:'tag3',
 				name:'Green'
@@ -795,7 +792,6 @@ describe('Same tests with nested referenceFields!🚀', function(){
 			})
 		})
 		describe('Update child referenceField', function(){
-			console.log('Update child referenceField')
 			Tags.update('tag3', {$set:{'nested.postIds':[{_id:'post1'}, {_id:'post2'}]}})
 			let post1 = Posts.findOne('post1')
 			let post2 = Posts.findOne('post2')
@@ -810,7 +806,6 @@ describe('Same tests with nested referenceFields!🚀', function(){
 			})
 		})
 		describe('Update children', function(){
-			console.log('Update children')
 			Tags.find().forEach(tag => {
 				Tags.update(tag._id, {$set:{name:'color-' + tag.name}})
 			})
@@ -827,7 +822,6 @@ describe('Same tests with nested referenceFields!🚀', function(){
 			})
 		})
 		describe('Remove child', function(){
-			console.log('Remove child')
 			Tags.remove('tag1')
 			let post1 = Posts.findOne('post1')
 			let post2 = Posts.findOne('post2')
@@ -841,7 +835,6 @@ describe('Same tests with nested referenceFields!🚀', function(){
 			})
 		})
 		describe('Remove parent2 from child referenceField', function(){
-			console.log('Remove parent2 from child referenceField')
 			Tags.update('tag3', {$pull:{'nested.postIds':{_id:'post2'}}})
 			let post1 = Posts.findOne('post1')
 			let post2 = Posts.findOne('post2')
@@ -855,15 +848,12 @@ describe('Same tests with nested referenceFields!🚀', function(){
 			})
 		})
 		describe('Insert another parent', function(){
-			console.log('Insert another parent')
 			Tags.update({}, {$push:{'nested.postIds':{_id:'post5'}}}, {multi:true})
 			Posts.insert({
 				_id:'post5'
 			})
 			let post = Posts.findOne('post5')
 			let tags = Tags.find({}, {fields:{nested:0}}).fetch()
-			console.log(post._tags)
-			console.log(tags)
 			it('new parent should contain all children', function(){
 				assert.deepEqual(post._tags, tags)
 			})
