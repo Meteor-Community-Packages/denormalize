@@ -10,7 +10,7 @@ meteor add herteby:denormalize
 
 ```javascript
 ParentCollection.cache({
-  type:'single',
+  type:'one',
   collection:ChildCollection,
   fields:['name','title'],
   referenceField:'childId',
@@ -26,7 +26,7 @@ ParentCollection.cache({
 	</tr>
 	<tr>
 		<td>type</td>
-		<td>'single', 'many' or 'inversed'</td>
+		<td>'one', 'many' or 'inversed'</td>
 		<td>The type of cache.</td>
 	</tr>
 	<tr>
@@ -42,7 +42,7 @@ ParentCollection.cache({
 	<tr>
 		<td>referenceField</td>
 		<td>String</td>
-		<td>For "single" and "many", the field on the parent containing _id of children. For "inversed", the field on the children containing the _id of the parent.</td>
+		<td>For "one" and "many", the field on the parent containing _id of children. For "inversed", the field on the children containing the _id of the parent.</td>
 	</tr>
 	<tr>
 		<td>cacheField</td>
@@ -57,7 +57,7 @@ ParentCollection.cache({
 </table>
 
 ## Nested referenceFields
-For "single" and "inverse", nested referenceFields are simply declared like `referenceField:'nested.reference.field'`
+For "one" and "inverse", nested referenceFields are simply declared like `referenceField:'nested.reference.field'`
 
 For "many", if the referenceField is an Array containing objects, a colon is used to show where the Array starts.
 

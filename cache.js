@@ -2,13 +2,13 @@ import _ from 'lodash'
 
 let settings = {}
 export default settings
-log = function(){
+function log(){
 	if(settings.debug){
 		console.log(...arguments)
 	}
 }
 
-flattenFields = function(object, prefix){
+function flattenFields(object, prefix){
 	prefix = prefix || ''
 	let fields = []
 	_.each(object, (val, key) => {
@@ -25,7 +25,7 @@ Mongo.Collection.prototype.cache = function(options){
 	check(options, {
 		collection:Match.Where(collection => collection instanceof Mongo.Collection),
 		fields:Match.OneOf([String], Object),
-		type:Match.OneOf('single', 'many', 'inversed', 'inverse'),
+		type:Match.OneOf('one', 'many', 'inversed', 'inverse'),
 		referenceField:String,
 		cacheField:String,
 		validate:Match.Optional(Boolean)
@@ -42,7 +42,7 @@ Mongo.Collection.prototype.cache = function(options){
 	if(!_.isArray(watchedFields)){
 		watchedFields = flattenFields(watchedFields)
 	}
-	if(type !== 'single' && !_.includes(watchedFields, '_id')){
+	if(type !== 'one' && !_.includes(watchedFields, '_id')){
 		watchedFields.push('_id')
 	}
 
@@ -86,7 +86,7 @@ Mongo.Collection.prototype.cache = function(options){
 			} else {
 				parentCollection.update(parent._id, {$set:{[cacheField]:[]}})
 			}
-		} else if(_.get(parent, referenceField)){ //type == 'single'
+		} else if(_.get(parent, referenceField)){ //type == 'one'
 			let child = childCollection.findOne(_.get(parent, referenceField), childOpts)
 			if(child){
 				parentCollection.update(parent._id, {$set:{[cacheField]:child}})
@@ -113,7 +113,7 @@ Mongo.Collection.prototype.cache = function(options){
 				} else {
 					parentCollection.update(parent._id, {$set:{[cacheField]:[]}})
 				}				
-			} else { //type == 'single'
+			} else { //type == 'one'
 				let child = _.get(parent, referenceField) && childCollection.findOne(_.get(parent, referenceField), childOpts)
 				if(child){
 					parentCollection.update(parent._id, {$set:{[cacheField]:child}})
@@ -135,7 +135,7 @@ Mongo.Collection.prototype.cache = function(options){
 			}
 		} else if(type == 'many'){
 			parentCollection.update({[referencePath]:child._id}, {$push:{[cacheField]:pickedChild}}, {multi:true})
-		} else { //type == 'single'
+		} else { //type == 'one'
 			parentCollection.update({[referenceField]:child._id}, {$set:{[cacheField]:pickedChild}}, {multi:true})
 		}
 	})
@@ -168,7 +168,7 @@ Mongo.Collection.prototype.cache = function(options){
 						parentCollection.update(parent._id, {$push:{[cacheField]:pickedChild}})
 					}
 				})
-			} else { //type == 'single'
+			} else { //type == 'one'
 				parentCollection.update({[referenceField]:child._id}, {$set:{[cacheField]:pickedChild}}, {multi:true})
 			}			
 		}
@@ -181,7 +181,7 @@ Mongo.Collection.prototype.cache = function(options){
 			parentCollection.update({_id:_.get(child, referenceField)}, {$pull:{[cacheField]:{_id:child._id}}})
 		} else if(type == 'many'){
 			parentCollection.update({[referencePath]:child._id}, {$pull:{[cacheField]:{_id:child._id}}}, {multi:true})
-		} else { //type == 'single'
+		} else { //type == 'one'
 			parentCollection.update({[referenceField]:child._id}, {$unset:{[cacheField]:1}}, {multi:true})
 		}
 	})

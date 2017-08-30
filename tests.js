@@ -14,7 +14,7 @@ Images.remove({})
 
 //Set up the caches
 Posts.cache({
-	type:'single',
+	type:'one',
 	collection:Users,
 	cacheField:'_author',
 	referenceField:'authorId',
@@ -48,7 +48,7 @@ describe('Insert parent - no children', function(){
 		imageIds:['dog', 'cat']
 	})
 	let post = Posts.findOne('post1')
-	it('single cache should not exist', function(){
+	it('one cache should not exist', function(){
 		assert.isUndefined(post._author)
 	})
 	it('many cache should be empty array', function(){
@@ -60,7 +60,7 @@ describe('Insert parent - no children', function(){
 		assert.equal(post._comments.length, 0)
 	})	
 })
-describe('Type: single', function(){
+describe('Type: one', function(){
 	describe('Insert child', function(){
 		Users.insert({
 			_id:'user1',
@@ -304,7 +304,7 @@ Images.remove({})
 
 //Set up the caches
 Posts.cache({
-	type:'single',
+	type:'one',
 	collection:Users,
 	cacheField:'_author',
 	referenceField:'nested.authorId',
@@ -343,7 +343,7 @@ describe('Same tests with nested referenceFields!🚀', function(){
 		}
 	})
 	let post = Posts.findOne('post1')
-	it('single cache should not exist', function(){
+	it('one cache should not exist', function(){
 		assert.isUndefined(post._author)
 	})
 	it('many cache should be empty array', function(){
@@ -355,7 +355,7 @@ describe('Same tests with nested referenceFields!🚀', function(){
 		assert.equal(post._comments.length, 0)
 	})	
 })
-describe('Type: single', function(){
+describe('Type: one', function(){
 	describe('Insert child', function(){
 		Users.insert({
 			_id:'user1',
