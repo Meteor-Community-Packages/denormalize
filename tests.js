@@ -1,16 +1,17 @@
 import {Mongo} from 'meteor/mongo'
 import _ from 'lodash'
-import denormalize from 'meteor/herteby:denormalize'
-denormalize.debug = true
 
-Posts = new Mongo.Collection('posts')
-Comments = new Mongo.Collection('comments')
-Users = new Mongo.Collection('users')
-Images = new Mongo.Collection('images')
+Posts = new Mongo.Collection('posts') //parent
+Comments = new Mongo.Collection('comments') //inversed
+Users = new Mongo.Collection('users') //single
+Images = new Mongo.Collection('images') //many
+Tags = new Mongo.Collection('tags') //many-inversed
+
 Posts.remove({})
 Comments.remove({})
 Users.remove({})
 Images.remove({})
+Tags.remove({})
 
 //Set up the caches
 Posts.cache({
@@ -40,6 +41,13 @@ Posts.cache({
 	referenceField:'imageIds',
 	fields:{filename:1}
 })
+Posts.cache({
+	type:'many-inversed',
+	collection:Tags,
+	cacheField:'_tags',
+	referenceField:'postIds',
+	fields:{name:1}
+})
 
 describe('Insert parent - no children', function(){
 	Posts.insert({
@@ -55,9 +63,13 @@ describe('Insert parent - no children', function(){
 		assert.isArray(post._images)
 		assert.equal(post._images.length, 0)
 	})
-	it('inverse cache should be empty array', function(){
+	it('inversed cache should be empty array', function(){
 		assert.isArray(post._comments)
 		assert.equal(post._comments.length, 0)
+	})
+	it('many-inversed cache should be empty array', function(){
+		assert.isArray(post._tags)
+		assert.equal(post._tags.length, 0)
 	})	
 })
 describe('Type: one', function(){
@@ -216,7 +228,7 @@ describe('Type: inversed', function(){
 			postId:'post1'
 		})
 		let post = Posts.findOne('post1')
-		let comment = Comments.findOne('comment1')
+		let comment = Comments.findOne('comment1', {fields:{postId:0}})
 		it('cache should contain child', function(){
 			assert.deepEqual(post._comments, [comment])
 		})
@@ -228,8 +240,8 @@ describe('Type: inversed', function(){
 			postId:'post1'
 		})
 		let post = Posts.findOne('post1')
-		let comment1 = Comments.findOne('comment1')
-		let comment2 = Comments.findOne('comment2')
+		let comment1 = Comments.findOne('comment1', {fields:{postId:0}})
+		let comment2 = Comments.findOne('comment2', {fields:{postId:0}})
 		it('cache should contain both children', function(){
 			assert.deepEqual(post._comments, [comment1, comment2])
 		})
@@ -240,8 +252,8 @@ describe('Type: inversed', function(){
 			message:'Hello world again!',
 		})
 		let post = Posts.findOne('post1')
-		let comment1 = Comments.findOne('comment1')
-		let comment2 = Comments.findOne('comment2')
+		let comment1 = Comments.findOne('comment1', {fields:{postId:0}})
+		let comment2 = Comments.findOne('comment2', {fields:{postId:0}})
 		it('cache should not contain new child', function(){
 			assert.deepEqual(post._comments, [comment1, comment2])
 		})
@@ -249,9 +261,9 @@ describe('Type: inversed', function(){
 	describe('Update child referenceField', function(){
 		Comments.update('comment3', {$set:{postId:'post1'}})
 		let post = Posts.findOne('post1')
-		let comment1 = Comments.findOne('comment1')
-		let comment2 = Comments.findOne('comment2')
-		let comment3 = Comments.findOne('comment3')
+		let comment1 = Comments.findOne('comment1', {fields:{postId:0}})
+		let comment2 = Comments.findOne('comment2', {fields:{postId:0}})
+		let comment3 = Comments.findOne('comment3', {fields:{postId:0}})
 		it('cache should contain new and previous children', function(){
 			assert.deepEqual(post._comments, [comment1, comment2, comment3])
 		})
@@ -259,9 +271,9 @@ describe('Type: inversed', function(){
 	describe('Update children', function(){
 		Comments.update({}, {$set:{message:'Goodbye world!'}}, {multi:true})
 		let post = Posts.findOne('post1')
-		let comment1 = Comments.findOne('comment1')
-		let comment2 = Comments.findOne('comment2')
-		let comment3 = Comments.findOne('comment3')
+		let comment1 = Comments.findOne('comment1', {fields:{postId:0}})
+		let comment2 = Comments.findOne('comment2', {fields:{postId:0}})
+		let comment3 = Comments.findOne('comment3', {fields:{postId:0}})
 		it('cache should contain updated children', function(){
 			assert.deepEqual(post._comments, [comment1, comment2, comment3])
 		})
@@ -269,8 +281,8 @@ describe('Type: inversed', function(){
 	describe('Remove child', function(){
 		Comments.remove('comment2')
 		let post = Posts.findOne('post1')
-		let comment1 = Comments.findOne('comment1')
-		let comment3 = Comments.findOne('comment3')
+		let comment1 = Comments.findOne('comment1', {fields:{postId:0}})
+		let comment3 = Comments.findOne('comment3', {fields:{postId:0}})
 		it('cache should only contain remaining children', function(){
 			assert.deepEqual(post._comments, [comment1, comment3])
 		})
@@ -278,7 +290,7 @@ describe('Type: inversed', function(){
 	describe('Remove parent from child referenceField', function(){
 		Comments.update('comment3', {$unset:{postId:1}})
 		let post = Posts.findOne('post1')
-		let comment1 = Comments.findOne('comment1')
+		let comment1 = Comments.findOne('comment1', {fields:{postId:0}})
 		it('cache should only contain remaining child', function(){
 			assert.deepEqual(post._comments, [comment1])
 		})
@@ -289,12 +301,134 @@ describe('Type: inversed', function(){
 			_id:'post4'
 		})
 		let post = Posts.findOne('post4')
-		let comments = Comments.find().fetch()
+		let comments = Comments.find({}, {fields:{postId:0}}).fetch()
 		it('cache should contain all children', function(){
 			assert.deepEqual(post._comments, comments)
 		})
 	})
 })
+
+
+describe('Type: many-inversed', function(){
+	describe('Insert child', function(){
+		Tags.insert({
+			_id:'tag1',
+			name:'Red',
+			postIds:['post1', 'post2']
+		})
+		let post1 = Posts.findOne('post1')
+		let post2 = Posts.findOne('post2')
+		let post3 = Posts.findOne('post3')
+		let tag = Tags.findOne('tag1', {fields:{postIds:0}})
+		it('parent1 should contain child', function(){
+			assert.deepEqual(post1._tags, [tag])
+		})
+		it('parent2 should contain child', function(){
+			assert.deepEqual(post2._tags, [tag])
+		})
+		it('parent3 should not contain child', function(){
+			assert.deepEqual(post3._tags, [])
+		})
+	})
+	describe('Insert another child', function(){
+		Tags.insert({
+			_id:'tag2',
+			name:'Blue',
+			postIds:['post1', 'post2']
+		})
+		let post1 = Posts.findOne('post1')
+		let post2 = Posts.findOne('post2')
+		let tag1 = Tags.findOne('tag1', {fields:{postIds:0}})
+		let tag2 = Tags.findOne('tag2', {fields:{postIds:0}})
+		it('parent1 should contain both children', function(){
+			assert.deepEqual(post1._tags, [tag1, tag2])
+		})
+		it('parent2 should contain both children', function(){
+			assert.deepEqual(post2._tags, [tag1, tag2])
+		})
+	})
+	describe('Insert unlinked child', function(){
+		Tags.insert({
+			_id:'tag3',
+			name:'Green'
+		})
+		let post = Posts.findOne('post1')
+		let tag1 = Tags.findOne('tag1', {fields:{postIds:0}})
+		let tag2 = Tags.findOne('tag2', {fields:{postIds:0}})
+		let tag3 = Tags.findOne('tag3', {fields:{postIds:0}})
+		it('cache should not contain new child', function(){
+			assert.deepEqual(post._tags, [tag1, tag2])
+		})
+	})
+	describe('Update child referenceField', function(){
+		Tags.update('tag3', {$set:{'postIds':['post1', 'post2']}})
+		let post1 = Posts.findOne('post1')
+		let post2 = Posts.findOne('post2')
+		let tag1 = Tags.findOne('tag1', {fields:{postIds:0}})
+		let tag2 = Tags.findOne('tag2', {fields:{postIds:0}})
+		let tag3 = Tags.findOne('tag3', {fields:{postIds:0}})
+		it('parent1 should now contain the child', function(){
+			assert.deepEqual(post1._tags, [tag1, tag2, tag3])
+		})
+		it('parent2 should now contain the child', function(){
+			assert.deepEqual(post2._tags, [tag1, tag2, tag3])
+		})
+	})
+	describe('Update child referenceField', function(){
+		Tags.find().forEach(tag => {
+			Tags.update(tag._id, {$set:{name:'color-' + tag.name}})
+		})
+		let post1 = Posts.findOne('post1')
+		let post2 = Posts.findOne('post2')
+		let tag1 = Tags.findOne('tag1', {fields:{postIds:0}})
+		let tag2 = Tags.findOne('tag2', {fields:{postIds:0}})
+		let tag3 = Tags.findOne('tag3', {fields:{postIds:0}})
+		it('parent1 should contain updated children', function(){
+			assert.deepEqual(post1._tags, [tag1, tag2, tag3])
+		})
+		it('parent2 should contain updated children', function(){
+			assert.deepEqual(post2._tags, [tag1, tag2, tag3])
+		})
+	})
+	describe('Remove child', function(){
+		Tags.remove('tag1')
+		let post1 = Posts.findOne('post1')
+		let post2 = Posts.findOne('post2')
+		let tag2 = Tags.findOne('tag2', {fields:{postIds:0}})
+		let tag3 = Tags.findOne('tag3', {fields:{postIds:0}})
+		it('parent1 should only contain remaining children', function(){
+			assert.deepEqual(post1._tags, [tag2, tag3])
+		})
+		it('parent2 should only contain remaining children', function(){
+			assert.deepEqual(post2._tags, [tag2, tag3])
+		})
+	})
+	describe('Remove parent2 from child referenceField', function(){
+		Tags.update('tag3', {$pull:{postIds:'post2'}})
+		let post1 = Posts.findOne('post1')
+		let post2 = Posts.findOne('post2')
+		let tag2 = Tags.findOne('tag2', {fields:{postIds:0}})
+		let tag3 = Tags.findOne('tag3', {fields:{postIds:0}})
+		it('parent1 should still contain child', function(){
+			assert.deepEqual(post1._tags, [tag2, tag3])
+		})
+		it('parent2 should not contain child', function(){
+			assert.deepEqual(post2._tags, [tag2])
+		})
+	})
+	describe('Insert another parent', function(){
+		Tags.update({}, {$push:{postIds:'post5'}}, {multi:true})
+		Posts.insert({
+			_id:'post5'
+		})
+		let post = Posts.findOne('post5')
+		let tags = Tags.find({}, {fields:{postIds:0}}).fetch()
+		it('new parent should contain all children', function(){
+			assert.deepEqual(post._tags, tags)
+		})
+	})
+})
+
 
 //Run the same tests but with nested fields
 
@@ -302,6 +436,7 @@ Posts.remove({})
 Comments.remove({})
 Users.remove({})
 Images.remove({})
+Tags.remove({})
 
 //Set up the caches
 Posts.cache({
@@ -331,7 +466,13 @@ Posts.cache({
 	referenceField:'nested.images:_id',
 	fields:{filename:1}
 })
-
+Posts.cache({
+	type:'many-inversed',
+	collection:Tags,
+	cacheField:'_tags',
+	referenceField:'nested.postIds:_id',
+	fields:{name:1}
+})
 
 
 describe('Same tests with nested referenceFields!🚀', function(){
@@ -354,6 +495,10 @@ describe('Same tests with nested referenceFields!🚀', function(){
 		it('inverse cache should be empty array', function(){
 			assert.isArray(post._comments)
 			assert.equal(post._comments.length, 0)
+		})
+		it('many-inverse cache should be empty array', function(){
+			assert.isArray(post._tags)
+			assert.equal(post._tags.length, 0)
 		})	
 	})
 	describe('Type: one', function(){
@@ -514,7 +659,7 @@ describe('Same tests with nested referenceFields!🚀', function(){
 				nested:{postId:'post1'}
 			})
 			let post = Posts.findOne('post1')
-			let comment = Comments.findOne('comment1')
+			let comment = Comments.findOne('comment1', {fields:{nested:0}})
 			it('cache should contain child', function(){
 				assert.deepEqual(post._comments, [comment])
 			})
@@ -526,8 +671,8 @@ describe('Same tests with nested referenceFields!🚀', function(){
 				nested:{postId:'post1'}
 			})
 			let post = Posts.findOne('post1')
-			let comment1 = Comments.findOne('comment1')
-			let comment2 = Comments.findOne('comment2')
+			let comment1 = Comments.findOne('comment1', {fields:{nested:0}})
+			let comment2 = Comments.findOne('comment2', {fields:{nested:0}})
 			it('cache should contain both children', function(){
 				assert.deepEqual(post._comments, [comment1, comment2])
 			})
@@ -538,8 +683,8 @@ describe('Same tests with nested referenceFields!🚀', function(){
 				message:'Hello world again!',
 			})
 			let post = Posts.findOne('post1')
-			let comment1 = Comments.findOne('comment1')
-			let comment2 = Comments.findOne('comment2')
+			let comment1 = Comments.findOne('comment1', {fields:{nested:0}})
+			let comment2 = Comments.findOne('comment2', {fields:{nested:0}})
 			it('cache should not contain new child', function(){
 				assert.deepEqual(post._comments, [comment1, comment2])
 			})
@@ -547,9 +692,9 @@ describe('Same tests with nested referenceFields!🚀', function(){
 		describe('Update child referenceField', function(){
 			Comments.update('comment3', {$set:{'nested.postId':'post1'}})
 			let post = Posts.findOne('post1')
-			let comment1 = Comments.findOne('comment1')
-			let comment2 = Comments.findOne('comment2')
-			let comment3 = Comments.findOne('comment3')
+			let comment1 = Comments.findOne('comment1', {fields:{nested:0}})
+			let comment2 = Comments.findOne('comment2', {fields:{nested:0}})
+			let comment3 = Comments.findOne('comment3', {fields:{nested:0}})
 			it('cache should contain new and previous children', function(){
 				assert.deepEqual(post._comments, [comment1, comment2, comment3])
 			})
@@ -557,9 +702,9 @@ describe('Same tests with nested referenceFields!🚀', function(){
 		describe('Update children', function(){
 			Comments.update({}, {$set:{message:'Goodbye world!'}}, {multi:true})
 			let post = Posts.findOne('post1')
-			let comment1 = Comments.findOne('comment1')
-			let comment2 = Comments.findOne('comment2')
-			let comment3 = Comments.findOne('comment3')
+			let comment1 = Comments.findOne('comment1', {fields:{nested:0}})
+			let comment2 = Comments.findOne('comment2', {fields:{nested:0}})
+			let comment3 = Comments.findOne('comment3', {fields:{nested:0}})
 			it('cache should contain updated children', function(){
 				assert.deepEqual(post._comments, [comment1, comment2, comment3])
 			})
@@ -567,8 +712,8 @@ describe('Same tests with nested referenceFields!🚀', function(){
 		describe('Remove child', function(){
 			Comments.remove('comment2')
 			let post = Posts.findOne('post1')
-			let comment1 = Comments.findOne('comment1')
-			let comment3 = Comments.findOne('comment3')
+			let comment1 = Comments.findOne('comment1', {fields:{nested:0}})
+			let comment3 = Comments.findOne('comment3', {fields:{nested:0}})
 			it('cache should only contain remaining children', function(){
 				assert.deepEqual(post._comments, [comment1, comment3])
 			})
@@ -576,7 +721,7 @@ describe('Same tests with nested referenceFields!🚀', function(){
 		describe('Remove parent from child referenceField', function(){
 			Comments.update('comment3', {$unset:{'nested.postId':1}})
 			let post = Posts.findOne('post1')
-			let comment1 = Comments.findOne('comment1')
+			let comment1 = Comments.findOne('comment1', {fields:{nested:0}})
 			it('cache should only contain remaining child', function(){
 				assert.deepEqual(post._comments, [comment1])
 			})
@@ -587,9 +732,140 @@ describe('Same tests with nested referenceFields!🚀', function(){
 				_id:'post4'
 			})
 			let post = Posts.findOne('post4')
-			let comments = Comments.find().fetch()
+			let comments = Comments.find({}, {fields:{nested:0}}).fetch()
 			it('cache should contain all children', function(){
 				assert.deepEqual(post._comments, comments)
+			})
+		})
+	})
+
+
+	describe('Type: many-inversed', function(){
+		describe('Insert child', function(){
+			console.log('Insert child')
+			Tags.insert({
+				_id:'tag1',
+				name:'Red',
+				nested:{postIds:[{_id:'post1'}, {_id:'post2'}]}
+			})
+			let post1 = Posts.findOne('post1')
+			let post2 = Posts.findOne('post2')
+			let post3 = Posts.findOne('post3')
+			let tag = Tags.findOne('tag1', {fields:{nested:0}})
+			it('parent1 should contain child', function(){
+				assert.deepEqual(post1._tags, [tag])
+			})
+			it('parent2 should contain child', function(){
+				assert.deepEqual(post2._tags, [tag])
+			})
+			it('parent3 should not contain child', function(){
+				assert.deepEqual(post3._tags, [])
+			})
+		})
+		describe('Insert another child', function(){
+			console.log('Insert another child')
+			Tags.insert({
+				_id:'tag2',
+				name:'Blue',
+				nested:{postIds:[{_id:'post1'}, {_id:'post2'}]}
+			})
+			let post1 = Posts.findOne('post1')
+			let post2 = Posts.findOne('post2')
+			let tag1 = Tags.findOne('tag1', {fields:{nested:0}})
+			let tag2 = Tags.findOne('tag2', {fields:{nested:0}})
+			it('parent1 should contain both children', function(){
+				assert.deepEqual(post1._tags, [tag1, tag2])
+			})
+			it('parent2 should contain both children', function(){
+				assert.deepEqual(post2._tags, [tag1, tag2])
+			})
+		})
+		describe('Insert unlinked child', function(){
+			console.log('Insert unlinked child')
+			Tags.insert({
+				_id:'tag3',
+				name:'Green'
+			})
+			let post = Posts.findOne('post1')
+			let tag1 = Tags.findOne('tag1', {fields:{nested:0}})
+			let tag2 = Tags.findOne('tag2', {fields:{nested:0}})
+			let tag3 = Tags.findOne('tag3', {fields:{nested:0}})
+			it('cache should not contain new child', function(){
+				assert.deepEqual(post._tags, [tag1, tag2])
+			})
+		})
+		describe('Update child referenceField', function(){
+			console.log('Update child referenceField')
+			Tags.update('tag3', {$set:{'nested.postIds':[{_id:'post1'}, {_id:'post2'}]}})
+			let post1 = Posts.findOne('post1')
+			let post2 = Posts.findOne('post2')
+			let tag1 = Tags.findOne('tag1', {fields:{nested:0}})
+			let tag2 = Tags.findOne('tag2', {fields:{nested:0}})
+			let tag3 = Tags.findOne('tag3', {fields:{nested:0}})
+			it('parent1 should now contain the child', function(){
+				assert.deepEqual(post1._tags, [tag1, tag2, tag3])
+			})
+			it('parent2 should now contain the child', function(){
+				assert.deepEqual(post2._tags, [tag1, tag2, tag3])
+			})
+		})
+		describe('Update children', function(){
+			console.log('Update children')
+			Tags.find().forEach(tag => {
+				Tags.update(tag._id, {$set:{name:'color-' + tag.name}})
+			})
+			let post1 = Posts.findOne('post1')
+			let post2 = Posts.findOne('post2')
+			let tag1 = Tags.findOne('tag1', {fields:{nested:0}})
+			let tag2 = Tags.findOne('tag2', {fields:{nested:0}})
+			let tag3 = Tags.findOne('tag3', {fields:{nested:0}})
+			it('parent1 should contain updated children', function(){
+				assert.deepEqual(post1._tags, [tag1, tag2, tag3])
+			})
+			it('parent2 should contain updated children', function(){
+				assert.deepEqual(post2._tags, [tag1, tag2, tag3])
+			})
+		})
+		describe('Remove child', function(){
+			console.log('Remove child')
+			Tags.remove('tag1')
+			let post1 = Posts.findOne('post1')
+			let post2 = Posts.findOne('post2')
+			let tag2 = Tags.findOne('tag2', {fields:{nested:0}})
+			let tag3 = Tags.findOne('tag3', {fields:{nested:0}})
+			it('parent1 should only contain remaining children', function(){
+				assert.deepEqual(post1._tags, [tag2, tag3])
+			})
+			it('parent2 should only contain remaining children', function(){
+				assert.deepEqual(post2._tags, [tag2, tag3])
+			})
+		})
+		describe('Remove parent2 from child referenceField', function(){
+			console.log('Remove parent2 from child referenceField')
+			Tags.update('tag3', {$pull:{'nested.postIds':{_id:'post2'}}})
+			let post1 = Posts.findOne('post1')
+			let post2 = Posts.findOne('post2')
+			let tag2 = Tags.findOne('tag2', {fields:{nested:0}})
+			let tag3 = Tags.findOne('tag3', {fields:{nested:0}})
+			it('parent1 should still contain child', function(){
+				assert.deepEqual(post1._tags, [tag2, tag3])
+			})
+			it('parent2 should not contain child', function(){
+				assert.deepEqual(post2._tags, [tag2])
+			})
+		})
+		describe('Insert another parent', function(){
+			console.log('Insert another parent')
+			Tags.update({}, {$push:{'nested.postIds':{_id:'post5'}}}, {multi:true})
+			Posts.insert({
+				_id:'post5'
+			})
+			let post = Posts.findOne('post5')
+			let tags = Tags.find({}, {fields:{nested:0}}).fetch()
+			console.log(post._tags)
+			console.log(tags)
+			it('new parent should contain all children', function(){
+				assert.deepEqual(post._tags, tags)
 			})
 		})
 	})

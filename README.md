@@ -26,7 +26,7 @@ ParentCollection.cache({
 	</tr>
 	<tr>
 		<td>type</td>
-		<td>'one', 'many' or 'inversed'</td>
+		<td>'one', 'many', 'inversed' or 'many-inversed'</td>
 		<td>The type of cache.</td>
 	</tr>
 	<tr>
@@ -37,12 +37,12 @@ ParentCollection.cache({
 	<tr>
 		<td>fields</td>
 		<td>Array of Strings or Object</td>
-		<td>The fields to include in the cache. It can either look like <code>['username', 'profile.email']</code> or <code>{username:1, profile:{email:1}}</code>. For "many" and "inversed", _id will always be included.</td>
+		<td>The fields to include in the cache. It can either look like <code>['username', 'profile.email']</code> or <code>{username:1, profile:{email:1}}</code>. For "many", "inversed" and "many-inversed", _id will always be included.</td>
 	</tr>
 	<tr>
 		<td>referenceField</td>
 		<td>String</td>
-		<td>For "one" and "many", the field on the parent containing _id of children. For "inversed", the field on the children containing the _id of the parent.</td>
+		<td>For "one" and "many", the field on the parent containing _id of children. For "inversed" and "many-inversed", the field on the children containing the _id of the parent.</td>
 	</tr>
 	<tr>
 		<td>cacheField</td>
@@ -57,9 +57,9 @@ ParentCollection.cache({
 </table>
 
 ## Nested referenceFields
-For "one" and "inverse", nested referenceFields are simply declared like `referenceField:'nested.reference.field'`
+For "one" and "inversed", nested referenceFields are simply declared like `referenceField:'nested.reference.field'`
 
-For "many", if the referenceField is an Array containing objects, a colon is used to show where the Array starts.
+For "many" and "many-inversed", if the referenceField is an Array containing objects, a colon is used to show where the Array starts.
 
 **Example:**
 If the parent doc looks like this:
