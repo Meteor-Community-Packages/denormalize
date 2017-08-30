@@ -32,6 +32,7 @@ Mongo.Collection.prototype.cache = function(options){
 	})
 	if(options.type == 'inverse') options.type = 'inversed' //Not sure which is best, so why not support both and be typo-friendly
 
+	//Bypass collection2 schemas
 	let childCollection = !options.validate && Package['aldeed:collection2'] ? options.collection._collection : options.collection
 	let parentCollection = this
 	let type = options.type
@@ -71,49 +72,18 @@ Mongo.Collection.prototype.cache = function(options){
 		return references
 	}
 
-	parentCollection.after.insert(function(userId, parent){
-		log('PARENT - INSERT', parent._id)
-		log('cache', childCollection._name, 'to', options.cacheField, 'in', parentCollection._name)
 
-		if(type == 'inversed'){
-			let children = childCollection.find({[referenceField]:parent._id}, childOpts).fetch()
-			parentCollection.update(parent._id, {$set:{[cacheField]:children}})
-		} else if(type == 'many'){
-			let references = getNestedReferences(parent)
-			if(references.length){
-				let children = childCollection.find({_id:{$in:references}}, childOpts).fetch()
-				parentCollection.update(parent._id, {$set:{[cacheField]:children}})
-			} else {
-				parentCollection.update(parent._id, {$set:{[cacheField]:[]}})
-			}
-		} else if(_.get(parent, referenceField)){ //type == 'one'
-			let child = childCollection.findOne(_.get(parent, referenceField), childOpts)
-			if(child){
-				parentCollection.update(parent._id, {$set:{[cacheField]:child}})
-			}
-		}
-	})
-	parentCollection.after.update(function(userId, parent, fieldNames){
-		if(_.includes(fieldNames, referenceField.split('.')[0])){ //Only update if the referenceField was changed
-			log('PARENT - UPDATE', parent._id)
-			log('cache', childCollection._name, 'to', options.cacheField, 'in', parentCollection._name)
-
-			if(!_.get(parent, referenceField)){
-				if(type == 'inversed' || type == 'many'){ //Should always have at least an empty array
-					parentCollection.update(parent._id, {$set:{[cacheField]:[]}})
+	if(type == 'one'){
+		parentCollection.after.insert(function(userId, parent){
+			if(_.get(parent, referenceField)){
+				let child = childCollection.findOne(_.get(parent, referenceField), childOpts)
+				if(child){
+					parentCollection.update(parent._id, {$set:{[cacheField]:child}})
 				}
-			} else if(type == 'inversed'){
-				let children = childCollection.find({[referenceField]:parent._id}, childOpts).fetch()
-				parentCollection.update(parent._id, {$set:{[cacheField]:children}})
-			} else if(type == 'many'){
-				let references = getNestedReferences(parent)
-				if(references.length){
-					let children = childCollection.find({_id:{$in:references}}, childOpts).fetch()
-					parentCollection.update(parent._id, {$set:{[cacheField]:children}})
-				} else {
-					parentCollection.update(parent._id, {$set:{[cacheField]:[]}})
-				}				
-			} else { //type == 'one'
+			}
+		})
+		parentCollection.after.update(function(userId, parent, fieldNames){
+			if(_.includes(fieldNames, referenceField.split('.')[0])){
 				let child = _.get(parent, referenceField) && childCollection.findOne(_.get(parent, referenceField), childOpts)
 				if(child){
 					parentCollection.update(parent._id, {$set:{[cacheField]:child}})
@@ -121,32 +91,91 @@ Mongo.Collection.prototype.cache = function(options){
 					parentCollection.update(parent._id, {$unset:{[cacheField]:1}})
 				}
 			}
-		}
-	})
-	childCollection.after.insert(function(userId, child){
-		log('CHILD - INSERT', child._id)
-		log('cache', childCollection._name, 'to', options.cacheField, 'in', parentCollection._name)
+		})
+		childCollection.after.insert(function(userId, child){
+			let pickedChild = _.pick(child, watchedFields)
+			parentCollection.update({[referenceField]:child._id}, {$set:{[cacheField]:pickedChild}}, {multi:true})
+		})
+		childCollection.after.update(function(userId, child, fieldNames){
+			if(_.intersection(fieldNames, topFields)){
+				let pickedChild = _.pick(child, watchedFields)
+				parentCollection.update({[referenceField]:child._id}, {$set:{[cacheField]:pickedChild}}, {multi:true})
+			}
+		})
+		childCollection.after.remove(function(userId, child){
+			parentCollection.update({[referenceField]:child._id}, {$unset:{[cacheField]:1}}, {multi:true})
+		})			
+	} 
 
-		let pickedChild = _.pick(child, watchedFields)
 
-		if(type == 'inversed'){
+	else if(type == 'many'){
+		parentCollection.after.insert(function(userId, parent){
+			let references = getNestedReferences(parent)
+			if(references.length){
+				let children = childCollection.find({_id:{$in:references}}, childOpts).fetch()
+				parentCollection.update(parent._id, {$set:{[cacheField]:children}})
+			} else {
+				parentCollection.update(parent._id, {$set:{[cacheField]:[]}})
+			}
+		})
+		parentCollection.after.update(function(userId, parent, fieldNames){
+			if(_.includes(fieldNames, referenceField.split('.')[0])){
+				let references = getNestedReferences(parent)
+				if(references.length){
+					let children = childCollection.find({_id:{$in:references}}, childOpts).fetch()
+					parentCollection.update(parent._id, {$set:{[cacheField]:children}})
+				} else {
+					parentCollection.update(parent._id, {$set:{[cacheField]:[]}})
+				}
+			}
+		})
+		childCollection.after.insert(function(userId, child){
+			let pickedChild = _.pick(child, watchedFields)
+			parentCollection.update({[referencePath]:child._id}, {$push:{[cacheField]:pickedChild}}, {multi:true})
+		})
+		childCollection.after.update(function(userId, child, fieldNames){
+			if(_.intersection(fieldNames, topFields)){
+				let pickedChild = _.pick(child, watchedFields)
+				parentCollection.find({[referencePath]:child._id}, parentOpts).forEach(parent => {
+					let index = _.findIndex(parent[cacheField], {_id:child._id})
+					if(index > -1){
+						parentCollection.update(parent._id, {$set:{[cacheField + '.' + index]:pickedChild}})
+					} else {
+						parentCollection.update(parent._id, {$push:{[cacheField]:pickedChild}})
+					}
+				})
+			}
+		})
+		childCollection.after.remove(function(userId, child){
+			parentCollection.update({[referencePath]:child._id}, {$pull:{[cacheField]:{_id:child._id}}}, {multi:true})
+		})		
+	}
+
+
+	else if(type == 'inversed'){
+		parentCollection.after.insert(function(userId, parent){
+			let children = childCollection.find({[referenceField]:parent._id}, childOpts).fetch()
+			parentCollection.update(parent._id, {$set:{[cacheField]:children}})
+		})
+		parentCollection.after.update(function(userId, parent, fieldNames){
+			if(_.includes(fieldNames, referenceField.split('.')[0])){
+				if(_.get(parent, referenceField)){
+					let children = childCollection.find({[referenceField]:parent._id}, childOpts).fetch()
+					parentCollection.update(parent._id, {$set:{[cacheField]:children}})
+				} else {
+					parentCollection.update(parent._id, {$set:{[cacheField]:[]}})
+				}
+			}
+		})
+		childCollection.after.insert(function(userId, child){
+			let pickedChild = _.pick(child, watchedFields)
 			if(_.get(child, referenceField)){
 				parentCollection.update({_id:_.get(child, referenceField)}, {$push:{[cacheField]:pickedChild}})
 			}
-		} else if(type == 'many'){
-			parentCollection.update({[referencePath]:child._id}, {$push:{[cacheField]:pickedChild}}, {multi:true})
-		} else { //type == 'one'
-			parentCollection.update({[referenceField]:child._id}, {$set:{[cacheField]:pickedChild}}, {multi:true})
-		}
-	})
-	childCollection.after.update(function(userId, child, fieldNames){
-		if(_.intersection(fieldNames, topFields)){
-			log('CHILD - UPDATE', child._id)
-			log('cache', childCollection._name, 'to', options.cacheField, 'in', parentCollection._name)
-
-			let pickedChild = _.pick(child, watchedFields)
-
-			if(type == 'inversed'){
+		})
+		childCollection.after.update(function(userId, child, fieldNames){
+			if(_.intersection(fieldNames, topFields)){
+				let pickedChild = _.pick(child, watchedFields)
 				let previousId = this.previous && _.get(this.previous, referenceField)
 				if(previousId && previousId !== _.get(child, referenceField)){
 					parentCollection.update({_id:previousId}, {$pull:{[cacheField]:{_id:child._id}}})
@@ -159,30 +188,10 @@ Mongo.Collection.prototype.cache = function(options){
 						parentCollection.update(parent._id, {$push:{[cacheField]:pickedChild}})
 					}
 				})
-			} else if(type == 'many'){
-				parentCollection.find({[referencePath]:child._id}, parentOpts).forEach(parent => {
-					let index = _.findIndex(parent[cacheField], {_id:child._id})
-					if(index > -1){
-						parentCollection.update(parent._id, {$set:{[cacheField + '.' + index]:pickedChild}})
-					} else {
-						parentCollection.update(parent._id, {$push:{[cacheField]:pickedChild}})
-					}
-				})
-			} else { //type == 'one'
-				parentCollection.update({[referenceField]:child._id}, {$set:{[cacheField]:pickedChild}}, {multi:true})
-			}			
-		}
-	})
-	childCollection.after.remove(function(userId, child){
-		log('CHILD - REMOVE', child._id)
-		log('cache', childCollection._name, 'to', options.cacheField, 'in', parentCollection._name)
-
-		if(type == 'inversed'){
+			}
+		})
+		childCollection.after.remove(function(userId, child){
 			parentCollection.update({_id:_.get(child, referenceField)}, {$pull:{[cacheField]:{_id:child._id}}})
-		} else if(type == 'many'){
-			parentCollection.update({[referencePath]:child._id}, {$pull:{[cacheField]:{_id:child._id}}}, {multi:true})
-		} else { //type == 'one'
-			parentCollection.update({[referenceField]:child._id}, {$unset:{[cacheField]:1}}, {multi:true})
-		}
-	})
+		})
+	}
 }
