@@ -27,8 +27,8 @@ Mongo.Collection.prototype.cache = function(options){
 	if(options.type == 'many-inverse') options.type = 'many-inversed'
 
 	//Bypass collection2 schemas
-	let childCollection = !options.validate && Package['aldeed:collection2'] ? options.collection._collection : options.collection
-	let parentCollection = this
+	let parentCollection = !options.validate && Package['aldeed:collection2'] ? this._collection : this
+	let childCollection = options.collection
 	let type = options.type
 	let referenceField = options.referenceField
 	let cacheField = options.cacheField
