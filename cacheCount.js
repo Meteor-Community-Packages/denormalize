@@ -7,10 +7,10 @@ Mongo.Collection.prototype.cacheCount = function(options) {
     cacheField:String,
     referenceField:String,
     selector:Match.Optional(Object),
-    validate:Match.Optional(Boolean)
+    bypassSchema:Match.Optional(Boolean)
   })
 
-  let parentCollection = !options.validate && Package['aldeed:collection2'] ? this._collection : this
+  let parentCollection = options.bypassSchema && Package['aldeed:collection2'] ? this._collection : this
   let childCollection = options.collection
   let selector = options.selector || {}
   let cacheField = options.cacheField

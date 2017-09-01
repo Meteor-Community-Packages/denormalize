@@ -7,10 +7,10 @@ Mongo.Collection.prototype.cacheField = function(options) {
     cacheField:String,
     fields:[String],
     transform:Match.Optional(Function),
-    validate:Match.Optional(Boolean)
+    bypassSchema:Match.Optional(Boolean)
   })
 
-  let collection = !options.validate && Package['aldeed:collection2'] ? this._collection : this
+  let collection = options.bypassSchema && Package['aldeed:collection2'] ? this._collection : this
   let cacheField = options.cacheField
   let fields = options.fields
   let topFields = _.uniq(_.map(fields, field => field.split('.')[0]))

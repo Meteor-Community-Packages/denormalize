@@ -1,6 +1,9 @@
 import {Mongo} from 'meteor/mongo'
 import _ from 'lodash'
 import {Migrations} from './autoMigrate.js'
+import settings from './cache.js'
+
+settings.autoMigrate = true
 
 Posts = new Mongo.Collection('posts') //parent
 Comments = new Mongo.Collection('comments') //inversed
@@ -667,7 +670,7 @@ Posts.cacheCount({
 })
 
 
-describe('Same tests with nested referenceFields and cacheFields!🚀', function(){
+describe('Same tests with nested referenceFields and cacheFields!', function(){
   describe('Insert parent - no children', function(){
     Posts.insert({
       _id:'post1',
@@ -1115,6 +1118,172 @@ describe('Same tests with nested referenceFields and cacheFields!🚀', function
       })
       it('filtered count should be 1', function(){
         assert.strictEqual(post.caches._likes.sweden, 0)
+      })
+    })
+  })
+})
+
+//Let's just create new collections for these ones
+Customers = new Mongo.Collection('customers')
+Bills = new Mongo.Collection('bills')
+Items = new Mongo.Collection('items')
+
+Customers.remove({})
+Bills.remove({})
+Items.remove({})
+
+Bills.cacheField({
+  fields:['_items'],
+  cacheField:'_amount',
+  transform(doc){
+    return _.sum(_.map(doc._items, 'price'))
+  }
+})
+//Option one
+Customers.cache({
+  cacheField:'_bills',
+  collection:Bills,
+  type:'inverse',
+  referenceField:'customerId',
+  fields:['_amount', '_items']
+})
+
+Bills.cache({
+  cacheField:'_items',
+  collection:Items,
+  type:'many',
+  referenceField:'itemIds',
+  fields:['name', 'price']
+})
+//Option two
+
+Customers.cache({
+  cacheField:'_bills2',
+  collection:Bills,
+  type:'inverse',
+  referenceField:'customerId',
+  fields:['itemIds']
+})
+Customers.cache({
+  cacheField:'_items',
+  collection:Items,
+  type:'many',
+  referenceField:'_bills2:itemIds',
+  fields:['name', 'price']
+})
+
+
+describe('Recursive caching!', function(){
+  describe('Initial setup', function(){
+    Customers.insert({
+    _id:'customer1',
+    })
+    Bills.insert({
+      _id:'bill1',
+      customerId:'customer1',
+      itemIds:['item1', 'item2']
+    })
+    Bills.insert({
+      _id:'bill2',
+      customerId:'customer1',
+      itemIds:['item3', 'item4']
+    })
+    Items.insert({
+      _id:'item1',
+      name:'Muffin',
+      price:30
+    })
+    Items.insert({
+      _id:'item2',
+      name:'Coffee',
+      price:25
+    })
+    Items.insert({
+      _id:'item3',
+      name:'Cake',
+      price:40
+    })
+    Items.insert({
+      _id:'item4',
+      name:'Tea',
+      price:25
+    })
+    let customer = Customers.findOne('customer1', {fields:{_id:0}})
+    console.log(JSON.stringify(customer, null, ' '))
+    let expected = {
+      _bills:[
+        {
+          _id:'bill1',
+          _items:[
+            {_id:'item1', name:'Muffin', price:30},
+            {_id:'item2', name:'Coffee', price:25},
+          ],
+          //_amount:55
+        },
+        {
+          _id:'bill2',
+          _items:[
+            {_id:'item3', name:'Cake', price:40},
+            {_id:'item4', name:'Tea', price:25},
+          ],
+          //_amount:65
+        }
+      ],
+      _bills2:[
+        {_id:'bill1', /*_amount:55,*/ itemIds:['item1', 'item2']},
+        {_id:'bill2', /*_amount:65,*/ itemIds:['item3', 'item4']}
+      ],
+      _items:[
+        {_id:'item1', name:'Muffin', price:30},
+        {_id:'item2', name:'Coffee', price:25},
+        {_id:'item3', name:'Cake', price:40},
+        {_id:'item4', name:'Tea', price:25},
+      ]
+    }
+    _.each(expected, (val, key) => {
+      it(key + ' should have the expected value', function(){
+        assert.deepEqual(customer[key], val, key)
+      })
+    })
+  })
+  describe('update a child', function(){
+    Bills.update('bill1', {$push:{itemIds:'item3'}})
+    let customer = Customers.findOne('customer1', {fields:{_id:0}})
+    console.log(JSON.stringify(customer, null, ' '))
+    let expected = {
+      _bills:[
+        {
+          _id:'bill1',
+          _items:[
+            {_id:'item1', name:'Muffin', price:30},
+            {_id:'item2', name:'Coffee', price:25},
+            {_id:'item3', name:'Cake', price:40},
+          ],
+          //_amount:55
+        },
+        {
+          _id:'bill2',
+          _items:[
+            {_id:'item3', name:'Cake', price:40},
+            {_id:'item4', name:'Tea', price:25},
+          ],
+          //_amount:65
+        }
+      ],
+      _bills2:[
+        {_id:'bill1', /*_amount:55,*/ itemIds:['item1', 'item2', 'item3']},
+        {_id:'bill2', /*_amount:65,*/ itemIds:['item3', 'item4']}
+      ],
+      _items:[
+        {_id:'item1', name:'Muffin', price:30},
+        {_id:'item2', name:'Coffee', price:25},
+        {_id:'item3', name:'Cake', price:40},
+        {_id:'item4', name:'Tea', price:25},
+      ]
+    }
+    _.each(expected, (val, key) => {
+      it(key + ' should have the expected value', function(){
+        assert.deepEqual(customer[key], val, key)
       })
     })
   })
