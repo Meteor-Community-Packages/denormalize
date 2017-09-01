@@ -2,7 +2,7 @@ import _ from 'lodash'
 import migrate from './autoMigrate.js'
 
 let settings = {
-  autoMigrate:true
+  autoMigrate:false
 }
 
 export default settings
@@ -27,13 +27,13 @@ Mongo.Collection.prototype.cache = function(options){
     type:Match.OneOf('one', 'many', 'inversed', 'inverse', 'many-inversed', 'many-inverse'),
     referenceField:String,
     cacheField:String,
-    validate:Match.Optional(Boolean)
+    bypassSchema:Match.Optional(Boolean)
   })
   if(options.type == 'inverse') options.type = 'inversed' //Not sure which is best, so why not support both and be typo-friendly
   if(options.type == 'many-inverse') options.type = 'many-inversed'
 
   //Bypass collection2 schemas
-  let parentCollection = !options.validate && Package['aldeed:collection2'] ? this._collection : this
+  let parentCollection = options.bypassSchema && Package['aldeed:collection2'] ? this._collection : this
   let childCollection = options.collection
   let type = options.type
   let referenceField = options.referenceField
@@ -77,7 +77,7 @@ Mongo.Collection.prototype.cache = function(options){
     if(idField && references.length){
       references = _.map(references, item => _.get(item, idField))
     }
-    return references
+    return _.uniq(_.flatten(references))
   }
 
   function oneInsert(userId, parent){
@@ -201,6 +201,7 @@ Mongo.Collection.prototype.cache = function(options){
     childCollection.after.insert(function(userId, child){
       let pickedChild = _.pick(child, childFields)
       if(_.get(child, referenceField)){
+        if(cacheField == '_bills') console.log(cacheField, 'INSERT PUSH', pickedChild)
         parentCollection.update({_id:_.get(child, referenceField)}, {$push:{[cacheField]:pickedChild}})
       }
     })
@@ -217,6 +218,7 @@ Mongo.Collection.prototype.cache = function(options){
           if(index > -1){
             parentCollection.update(parent._id, {$set:{[cacheField + '.' + index]:pickedChild}})
           } else {
+            if(cacheField == '_bills') console.log(cacheField, 'UPDATE PUSH', pickedChild)
             parentCollection.update(parent._id, {$push:{[cacheField]:pickedChild}})
           }
         })

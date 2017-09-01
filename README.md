@@ -40,7 +40,7 @@ ParentCollection.cache({
   <tr>
     <td>collection</td>
     <td>Mongo.Collection</td>
-    <td>The collection from which docs will be cached</td>
+    <td>The "child collection", from which docs will be cached</td>
   </tr>
   <tr>
     <td>fields</td>
@@ -58,9 +58,9 @@ ParentCollection.cache({
     <td>The field on the parent where children are cached. Can be a nested field, like <code>'caches.field'</code>, but it can not be in the same top level field as the referenceField. For <code>type:'one'</code>, cacheField will store a single child. For all others, it will store an array of children.</td>
   </tr>
   <tr>
-    <td>validate</td>
+    <td>bypassSchema</td>
     <td>Boolean (optional)</td>
-    <td>If set to true, the function will not attempt to bypass any collection2 schemas if they are defined. You must then make sure to include the cacheField in your schema.</td>
+    <td>If set to true, it will bypass any [collection2](https://github.com/aldeed/meteor-collection2) schema that may exist. Otherwise you must add the cacheField to your schema.</td>
   </tr>
 </table>
 
@@ -75,7 +75,7 @@ ParentCollection.cacheCount({
 })
 ```
 
-cacheCount() is for the same type of relationships as "inverse" and "many-inverse". ie. each child may contain a reference to one or more parents.
+cacheCount() can be used on "inverse" and "many-inverse" relationships
 
 <table>
   <tr>
@@ -140,6 +140,17 @@ Collection.cacheField({
     <td>The function used to compute the result. If not defined, the default is to return a string of all watched fields concatenated with <code>', '</code></td>
   </tr>
 </table>
+
+## Automatic migration
+
+```javascript
+import settings from 'meteor/herteby:denormalize'
+settings.autoMigrate = true
+```
+
+One problem with caching is that if you decide to create a new cache on a collection that already contains documents, those documents need to be updated.
+This feature makes it so that whenever cache() is called, it checks against a collection (called _cacheMigrations in the DB) to see wether a migration has been run before with the specific options you gave to cache(). If it has not, it will update all the documents in the collection according to the cache options, and then save the options to _cacheMigrations, so that it won't run again unless you change any of the options. If you later decide to add another field to the cache, it will rerun automatically.
+
 
 ## Nested referenceFields
 For "one" and "inverse", nested referenceFields are simply declared like `referenceField:'nested.reference.field'`
