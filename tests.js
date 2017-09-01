@@ -1,5 +1,6 @@
 import {Mongo} from 'meteor/mongo'
 import _ from 'lodash'
+import {Migrations} from './autoMigrate.js'
 
 Posts = new Mongo.Collection('posts') //parent
 Comments = new Mongo.Collection('comments') //inversed
@@ -15,6 +16,17 @@ Users.remove({})
 Images.remove({})
 Tags.remove({})
 Likes.remove({})
+Migrations.remove({})
+
+//This user is inserted before the caches have been declared, so it will need to be migrated
+Users.insert({
+	_id:'migrant',
+	username:'xXSephiroth69Xx',
+	profile:{
+		first_name:'Steve',
+		last_name:'Jobs'
+	}
+})
 
 //Set up the caches
 Posts.cache({
@@ -73,6 +85,22 @@ Users.cacheField({
 	transform(doc){
 		return [doc.username, _.get(doc, 'profile.first_name'), _.get(doc, 'profile.last_name')]
 	}
+})
+
+describe('Automigration', function(){
+	let user = Users.findOne('migrant')
+	it('migrated document should have the correct caches', function(){
+		assert.deepEqual(user, {
+			_id:'migrant',
+			username:'xXSephiroth69Xx',
+			profile:{
+				first_name:'Steve',
+				last_name:'Jobs'
+			},
+			_defaultTransform:'xXSephiroth69Xx, Steve, Jobs',
+			nested:{_customTransform:['xXSephiroth69Xx', 'Steve', 'Jobs']}
+		})
+	})
 })
 
 describe('Insert parent - no children', function(){

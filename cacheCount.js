@@ -1,4 +1,5 @@
 import _ from 'lodash'
+import migrate from './autoMigrate.js'
 
 Mongo.Collection.prototype.cacheCount = function(options) {
 	check(options, {
@@ -24,10 +25,14 @@ Mongo.Collection.prototype.cacheCount = function(options) {
 		}
 	}
 
-	parentCollection.after.insert((userId, parent) => {
+	function insert(userId, parent){
 		let select = _.merge(selector, {[referenceField]:parent._id})
 		parentCollection.update(parent._id, {$set:{[cacheField]:childCollection.find(select).count()}})
-	})
+	}
+
+	migrate(parentCollection, insert, options)
+
+	parentCollection.after.insert(insert)
 	
 	childCollection.after.insert((userId, child) => {
 		update(child)

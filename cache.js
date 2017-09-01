@@ -1,5 +1,11 @@
 import _ from 'lodash'
+import migrate from './autoMigrate.js'
 
+let settings = {
+	autoMigrate:true
+}
+
+export default settings
 
 function flattenFields(object, prefix){
 	prefix = prefix || ''
@@ -74,16 +80,19 @@ Mongo.Collection.prototype.cache = function(options){
 		return references
 	}
 
-	if(type == 'one'){
-
-		parentCollection.after.insert(function(userId, parent){
-			if(_.get(parent, referenceField)){
-				let child = childCollection.findOne(_.get(parent, referenceField), childOpts)
-				if(child){
-					parentCollection.update(parent._id, {$set:{[cacheField]:child}})
-				}
+	function oneInsert(userId, parent){
+		if(_.get(parent, referenceField)){
+			let child = childCollection.findOne(_.get(parent, referenceField), childOpts)
+			if(child){
+				parentCollection.update(parent._id, {$set:{[cacheField]:child}})
 			}
-		})
+		}
+	}
+
+	if(type == 'one'){
+		migrate(parentCollection, oneInsert, options)		
+
+		parentCollection.after.insert(oneInsert)
 
 		parentCollection.after.update(function(userId, parent, changedFields){
 			if(_.includes(changedFields, referenceField.split('.')[0])){
@@ -110,21 +119,25 @@ Mongo.Collection.prototype.cache = function(options){
 
 		childCollection.after.remove(function(userId, child){
 			parentCollection.update({[referenceField]:child._id}, {$unset:{[cacheField]:1}}, {multi:true})
-		})			
+		})
+
+		return
 	} 
 
+	function manyInsert(userId, parent){
+		let references = getNestedReferences(parent)
+		if(references.length){
+			let children = childCollection.find({_id:{$in:references}}, childOpts).fetch()
+			parentCollection.update(parent._id, {$set:{[cacheField]:children}})
+		} else {
+			parentCollection.update(parent._id, {$set:{[cacheField]:[]}})
+		}
+	}
 
-	else if(type == 'many'){
+	if(type == 'many'){
+		migrate(parentCollection, manyInsert, options)
 
-		parentCollection.after.insert(function(userId, parent){
-			let references = getNestedReferences(parent)
-			if(references.length){
-				let children = childCollection.find({_id:{$in:references}}, childOpts).fetch()
-				parentCollection.update(parent._id, {$set:{[cacheField]:children}})
-			} else {
-				parentCollection.update(parent._id, {$set:{[cacheField]:[]}})
-			}
-		})
+		parentCollection.after.insert(manyInsert)
 
 		parentCollection.after.update(function(userId, parent, changedFields){
 			if(_.includes(changedFields, referencePath.split('.')[0])){
@@ -159,16 +172,20 @@ Mongo.Collection.prototype.cache = function(options){
 
 		childCollection.after.remove(function(userId, child){
 			parentCollection.update({[referencePath]:child._id}, {$pull:{[cacheField]:{_id:child._id}}}, {multi:true})
-		})		
+		})
+
+		return
 	}
 
+	function inversedInsert(userId, parent){
+		let children = childCollection.find({[referenceField]:parent._id}, childOpts).fetch()
+		parentCollection.update(parent._id, {$set:{[cacheField]:children}})
+	}
 
-	else if(type == 'inversed'){
+	if(type == 'inversed'){
+		migrate(parentCollection, inversedInsert, options)
 
-		parentCollection.after.insert(function(userId, parent){
-			let children = childCollection.find({[referenceField]:parent._id}, childOpts).fetch()
-			parentCollection.update(parent._id, {$set:{[cacheField]:children}})
-		})
+		parentCollection.after.insert(inversedInsert)
 
 		parentCollection.after.update(function(userId, parent, changedFields){
 			if(_.includes(changedFields, referenceField.split('.')[0])){
@@ -209,15 +226,19 @@ Mongo.Collection.prototype.cache = function(options){
 		childCollection.after.remove(function(userId, child){
 			parentCollection.update({_id:_.get(child, referenceField)}, {$pull:{[cacheField]:{_id:child._id}}})
 		})
+
+		return
 	}
 
+	function manyInversedInsert(userId, parent){
+		let children = childCollection.find({[referencePath]:parent._id}, childOpts).fetch()
+		parentCollection.update(parent._id, {$set:{[cacheField]:children}})
+	}
 
-	else if(type == 'many-inversed'){
+	if(type == 'many-inversed'){
+		migrate(parentCollection, manyInversedInsert, options)
 
-		parentCollection.after.insert(function(userId, parent){
-			let children = childCollection.find({[referencePath]:parent._id}, childOpts).fetch()
-			parentCollection.update(parent._id, {$set:{[cacheField]:children}})
-		})
+		parentCollection.after.insert(manyInversedInsert)
 
 		parentCollection.after.update(function(userId, parent, changedFields){
 			if(_.includes(changedFields, referencePath.split('.')[0])){

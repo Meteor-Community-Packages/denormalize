@@ -1,4 +1,5 @@
 import _ from 'lodash'
+import migrate from './autoMigrate.js'
 
 Mongo.Collection.prototype.cacheField = function(options) {
 
@@ -20,10 +21,14 @@ Mongo.Collection.prototype.cacheField = function(options) {
 		}
 	}
 
-	collection.after.insert((userId, doc) => {
+	function insert(userid, doc){
 		let val = transform(doc)
 		collection.update(doc._id, {$set:{[cacheField]:val}})
-	})
+	}
+
+	migrate(collection, insert, options)
+
+	collection.after.insert(insert)
 
 	collection.after.update((userId, doc, changedFields) => {
 		if(_.intersection(changedFields, topFields).length){
@@ -32,5 +37,5 @@ Mongo.Collection.prototype.cacheField = function(options) {
 				collection.update(doc._id, {$set:{[cacheField]:val}})
 			}
 		}
-	})
+	})	
 }
