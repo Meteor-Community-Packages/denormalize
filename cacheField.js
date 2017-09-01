@@ -23,7 +23,6 @@ Mongo.Collection.prototype.cacheField = function(options) {
 
   function insertHook(userid, doc){
     let val = transform(doc)
-    console.log('CACHEFIELD INSERT', val)
     collection.update(doc._id, {$set:{[cacheField]:val}})
   }
 
@@ -34,10 +33,7 @@ Mongo.Collection.prototype.cacheField = function(options) {
   collection.after.update((userId, doc, changedFields) => {
     if(_.intersection(changedFields, topFields).length){
       let val = transform(doc)
-      if(!_.isEqual(val, _.get(doc, cacheField))){
         collection.update(doc._id, {$set:{[cacheField]:val}})
-        console.log('CACHEFIELD UPDATE', val)
-      }
     }
   })  
 }

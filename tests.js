@@ -5,6 +5,21 @@ import settings from './cache.js'
 
 settings.autoMigrate = true
 
+//function for nicer error reports
+function compare(expected, result){
+  _.each(expected, (val, key) => {
+    it(key + ' should have the expected value', function(){
+      if(!_.isEqual(result[key], val)){
+        console.log('FAIL:', key)
+        console.log('RESULT', JSON.stringify(result[key], null, ' '))
+        console.log('EXPECTED', JSON.stringify(val, null, ' '))
+      }
+      assert.deepEqual(result[key], val)
+    })
+  })
+}
+
+
 Posts = new Mongo.Collection('posts') //parent
 Comments = new Mongo.Collection('comments') //inversed
 Users = new Mongo.Collection('users') //single
@@ -1132,13 +1147,7 @@ Customers.remove({})
 Bills.remove({})
 Items.remove({})
 
-Bills.cacheField({
-  fields:['_items'],
-  cacheField:'_amount',
-  transform(doc){
-    return _.sum(_.map(doc._items, 'price'))
-  }
-})
+
 //Option one
 Customers.cache({
   cacheField:'_bills',
@@ -1162,7 +1171,7 @@ Customers.cache({
   collection:Bills,
   type:'inverse',
   referenceField:'customerId',
-  fields:['itemIds']
+  fields:['itemIds', '_amount']
 })
 Customers.cache({
   cacheField:'_items',
@@ -1172,19 +1181,27 @@ Customers.cache({
   fields:['name', 'price']
 })
 
+Bills.cacheField({
+  fields:['_items'],
+  cacheField:'_amount',
+  transform(doc){
+    console.log(doc._id, 'ITEMS', doc._items)
+    let price = _.sum(_.map(doc._items, 'price'))
+    console.log(doc._id, 'PRICE', price)
+    return price
+  }
+})
 
 describe('Recursive caching!', function(){
   describe('Initial setup', function(){
     Customers.insert({
     _id:'customer1',
     })
-    console.log('inserting bill1...')
     Bills.insert({
       _id:'bill1',
       customerId:'customer1',
       itemIds:['item1', 'item2']
     })
-    console.log('inserting bill2...')
     Bills.insert({
       _id:'bill2',
       customerId:'customer1',
@@ -1211,7 +1228,6 @@ describe('Recursive caching!', function(){
       price:25
     })
     let customer = Customers.findOne('customer1', {fields:{_id:0}})
-    console.log(JSON.stringify(customer, null, ' '))
     let expected = {
       _bills:[
         {
@@ -1220,7 +1236,7 @@ describe('Recursive caching!', function(){
             {_id:'item1', name:'Muffin', price:30},
             {_id:'item2', name:'Coffee', price:25},
           ],
-          //_amount:55
+          _amount:55
         },
         {
           _id:'bill2',
@@ -1228,12 +1244,12 @@ describe('Recursive caching!', function(){
             {_id:'item3', name:'Cake', price:40},
             {_id:'item4', name:'Tea', price:25},
           ],
-          //_amount:65
+          _amount:65
         }
       ],
       _bills2:[
-        {_id:'bill1', /*_amount:55,*/ itemIds:['item1', 'item2']},
-        {_id:'bill2', /*_amount:65,*/ itemIds:['item3', 'item4']}
+        {_id:'bill1', _amount:55, itemIds:['item1', 'item2']},
+        {_id:'bill2', _amount:65, itemIds:['item3', 'item4']}
       ],
       _items:[
         {_id:'item1', name:'Muffin', price:30},
@@ -1242,16 +1258,11 @@ describe('Recursive caching!', function(){
         {_id:'item4', name:'Tea', price:25},
       ]
     }
-    _.each(expected, (val, key) => {
-      it(key + ' should have the expected value', function(){
-        assert.deepEqual(customer[key], val, key)
-      })
-    })
+    compare(expected, customer)
   })
   describe('update a child', function(){
     Bills.update('bill1', {$push:{itemIds:'item3'}})
     let customer = Customers.findOne('customer1', {fields:{_id:0}})
-    console.log(JSON.stringify(customer, null, ' '))
     let expected = {
       _bills:[
         {
@@ -1261,7 +1272,7 @@ describe('Recursive caching!', function(){
             {_id:'item2', name:'Coffee', price:25},
             {_id:'item3', name:'Cake', price:40},
           ],
-          //_amount:55
+          _amount:95
         },
         {
           _id:'bill2',
@@ -1269,12 +1280,12 @@ describe('Recursive caching!', function(){
             {_id:'item3', name:'Cake', price:40},
             {_id:'item4', name:'Tea', price:25},
           ],
-          //_amount:65
+          _amount:65
         }
       ],
       _bills2:[
-        {_id:'bill1', /*_amount:55,*/ itemIds:['item1', 'item2', 'item3']},
-        {_id:'bill2', /*_amount:65,*/ itemIds:['item3', 'item4']}
+        {_id:'bill1', _amount:95, itemIds:['item1', 'item2', 'item3']},
+        {_id:'bill2', _amount:65, itemIds:['item3', 'item4']}
       ],
       _items:[
         {_id:'item1', name:'Muffin', price:30},
@@ -1283,10 +1294,6 @@ describe('Recursive caching!', function(){
         {_id:'item4', name:'Tea', price:25},
       ]
     }
-    _.each(expected, (val, key) => {
-      it(key + ' should have the expected value', function(){
-        assert.deepEqual(customer[key], val, key)
-      })
-    })
+    compare(expected, customer)
   })
 })

@@ -153,7 +153,11 @@ Mongo.Collection.prototype.cache = function(options){
 
     childCollection.after.insert(function(userId, child){
       let pickedChild = _.pick(child, childFields)
-      parentCollection.update({[referencePath]:child._id}, {$push:{[cacheField]:pickedChild}}, {multi:true})
+      let parent = parentCollection.find({[referencePath]:child._id}).forEach(parent => {
+        if(!_.find(parent[cacheField], {_id:child._id})){
+          parentCollection.update(parent._id, {$push:{[cacheField]:pickedChild}})
+        }
+      })
     })
 
     childCollection.after.update(function(userId, child, changedFields){
@@ -201,13 +205,22 @@ Mongo.Collection.prototype.cache = function(options){
     childCollection.after.insert(function(userId, child){
       let pickedChild = _.pick(child, childFields)
       if(_.get(child, referenceField)){
-        if(cacheField == '_bills') console.log(cacheField, 'INSERT PUSH', pickedChild)
-        parentCollection.update({_id:_.get(child, referenceField)}, {$push:{[cacheField]:pickedChild}})
+        //This is pretty weird: sometimes "update" can trigger before "insert", so we need to check if the child has already been cached
+        let parent = parentCollection.findOne(_.get(child, referenceField), {fields:{[cacheField]:1}})
+        if(!_.find(parent[cacheField], {_id:child._id})){
+          parentCollection.update(parent._id, {$push:{[cacheField]:pickedChild}})
+        }
       }
     })
 
     childCollection.after.update(function(userId, child, changedFields){
+      if(cacheField == '_bills2'){
+        console.log('UPDATE', child._amount)
+      }
       if(_.intersection(changedFields, topFields).length){
+        if(cacheField == '_bills2'){
+          console.log('Intersection', child._amount)
+        }
         let pickedChild = _.pick(child, childFields)
         let previousId = this.previous && _.get(this.previous, referenceField)
         if(previousId && previousId !== _.get(child, referenceField)){
@@ -216,9 +229,11 @@ Mongo.Collection.prototype.cache = function(options){
         parentCollection.find({_id:_.get(child, referenceField)}, parentOpts).forEach(parent => {
           let index = _.findIndex(_.get(parent, cacheField), {_id:child._id})
           if(index > -1){
+            if(cacheField == '_bills2'){
+              console.log('exists...', child._amount)
+            }
             parentCollection.update(parent._id, {$set:{[cacheField + '.' + index]:pickedChild}})
           } else {
-            if(cacheField == '_bills') console.log(cacheField, 'UPDATE PUSH', pickedChild)
             parentCollection.update(parent._id, {$push:{[cacheField]:pickedChild}})
           }
         })
@@ -251,9 +266,13 @@ Mongo.Collection.prototype.cache = function(options){
 
     childCollection.after.insert(function(userId, child){
       let references = getNestedReferences(child)
-      if(references.length){        
+      if(references.length){
         let pickedChild = _.pick(child, childFields)
-        parentCollection.update({_id:{$in:references}}, {$push:{[cacheField]:pickedChild}}, {multi:true})
+        parentCollection.find({_id:{$in:references}}, parentOpts).forEach(parent => {
+          if(!_.find(parent[cacheField], {_id:child._id})){ //Pretty weird but necessary. Sometimes "update" can trigger before "insert"
+            parentCollection.update(parent._id, {$push:{[cacheField]:pickedChild}})
+          }
+        })
       }
     })
 
