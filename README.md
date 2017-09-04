@@ -9,7 +9,7 @@ meteor add herteby:denormalize
 In this readme, *parent* always refers to the documents in which the cache is stored, while *child* refers to the documents that will be cached.
 
 **Example:** You have two collections - Users and Roles. The Users store the _id of any Roles they have been assigned. If you want each User to cache information from any Roles that are assigned to it, the Users would be the *parents* and the Roles would be the *children*, and it would be either a *one* or *many* relationship, depending on if a User can have multiple Roles. If you wanted each Role to store a list of all Users which have that role, the Roles would be the *parents* and the Users would be the *children*, and it would be a *inverse* or *many-inverse* relationship.
-## cache()
+## Collection.cache(options)
 
 ```javascript
 ParentCollection.cache({
@@ -22,50 +22,53 @@ ParentCollection.cache({
 ```
 
 <table>
-	<tr>
-		<th>Property</th>
-		<th>Valid values</th>
-		<th>Description</th>
-	</tr>
-	<tr>
-		<td>type</td>
-		<td>'one', 'many', 'inverse' or 'many-inverse'</td>
-		<td>
-			<div><b>one:</b> The parent stores a single child _id</div>
-			<div><b>many:</b> The parent stores an array of child _ids</div>
-			<div><b>inverse:</b> Each child stores a single parent _id</div>
-			<div><b>many-inverse:</b> Each child stores an array of parent _ids</div>
-			<div>For "one", cacheField will store a single child. For all other, it will store an array of children</div>
-		</td>
-	</tr>
-	<tr>
-		<td>collection</td>
-		<td>Mongo.Collection</td>
-		<td>The collection from which docs will be cached</td>
-	</tr>
-	<tr>
-		<td>fields</td>
-		<td>Array of Strings or Object</td>
-		<td>The fields to include in the cache. It can either look like <code>['username', 'profile.email']</code> or <code>{username:1, profile:{email:1}}</code>. For "many", "inverse" and "many-inverse", _id will always be included.</td>
-	</tr>
-	<tr>
-		<td>referenceField</td>
-		<td>String</td>
-		<td>For "one" and "many", the field on the parent containing _id of children. For "inverse" and "many-inverse", the field on the children containing the _id of the parent.</td>
-	</tr>
-	<tr>
-		<td>cacheField</td>
-		<td>String</td>
-		<td>The field on the parent where children are cached. Can be a nested field, like <code>'caches.field'</code>, but it can not be in the same top level field as the referenceField.</td>
-	</tr>
-	<tr>
-		<td>validate</td>
-		<td>Boolean (optional)</td>
-		<td>If set to true, the function will not attempt to bypass any collection2 schemas if they are defined. You must then make sure to include the cacheField in your schema.</td>
-	</tr>
+  <tr>
+    <th>Property</th>
+    <th>Valid values</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>type</td>
+    <td>'one', 'many', 'inverse' or 'many-inverse'</td>
+    <td>
+      <div><b>one:</b> The parent stores a single child _id</div>
+      <div><b>many:</b> The parent stores an array of child _ids</div>
+      <div><b>inverse:</b> Each child stores a single parent _id</div>
+      <div><b>many-inverse:</b> Each child stores an array of parent _ids</div>
+    </td>
+  </tr>
+  <tr>
+    <td>collection</td>
+    <td>Mongo.Collection</td>
+    <td>The "child collection", from which docs will be cached</td>
+  </tr>
+  <tr>
+    <td>fields</td>
+    <td>Array of Strings or Object</td>
+    <td>The fields to include in the cache. It can either look like <code>['username', 'profile.email']</code> or <code>{username:1, profile:{email:1}}</code>. For "many", "inverse" and "many-inverse", _id will always be included.</td>
+  </tr>
+  <tr>
+    <td>referenceField</td>
+    <td>String</td>
+    <td>For "one" and "many", the field on the parent containing _id of children. For "inverse" and "many-inverse", the field on the children containing the _id of the parent.</td>
+  </tr>
+  <tr>
+    <td>cacheField</td>
+    <td>String</td>
+    <td>The field on the parent where children are cached. Can be a nested field, like <code>'caches.field'</code>, but it can not be in the same top level field as the referenceField. For <code>type:'one'</code>, cacheField will store a single child. For all others, it will store an array of children.</td>
+  </tr>
+  <tr>
+    <td>bypassSchema</td>
+    <td>Boolean (optional)</td>
+    <td>If set to true, it will bypass any <a href="https://github.com/aldeed/meteor-collection2">collection2</a> schema that may exist. Otherwise you must add the cacheField to your schema.</td>
+  </tr>
 </table>
 
-## cacheCount()
+#### Notes about arrays:
+- When `cacheField` is an array (all types except "one"), the order of the children is not guaranteed.
+- When `referenceField` is an array, if it contains duplicate _ids, they will be ignored. The `cacheField` will always contain unique children.
+
+## Collection.cacheCount(options)
 
 ```javascript
 ParentCollection.cacheCount({
@@ -76,38 +79,37 @@ ParentCollection.cacheCount({
 })
 ```
 
-cacheCount() is for the same type of relationships as "inverse" and "many-inverse". ie. each child may contain a reference to one or more parents.
+cacheCount() can be used on "inverse" and "many-inverse" relationships
 
 <table>
-	<tr>
-		<th>Property</th>
-		<th>Valid values</th>
-		<th>Description</th>
-	</tr>
-	<tr>
-		<td>collection</td>
-		<td>Mongo.Collection</td>
-		<td>The collection in which docs will be counted</td>
-	</tr>
-	<tr>
-		<td>referenceField</td>
-		<td>String</td>
-		<td>The field on counted docs which must match the parent _id</td>
-	</tr>
-	<tr>
-		<td>cacheField</td>
-		<td>String</td>
-		<td>The field where the count is stored. Can be a nested field like <code>'counts.all'</code></td>
-	</tr>
-	<tr>
-		<td>Selector</td>
-		<td>Mongo selector (optional)</td>
-		<td>Can be used to filter the counted documents. <code>[referenceField]:parent._id</code> will always be included though.</td>
-	</tr>
+  <tr>
+    <th>Property</th>
+    <th>Valid values</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>collection</td>
+    <td>Mongo.Collection</td>
+    <td>The collection in which docs will be counted</td>
+  </tr>
+  <tr>
+    <td>referenceField</td>
+    <td>String</td>
+    <td>The field on counted docs which must match the parent _id</td>
+  </tr>
+  <tr>
+    <td>cacheField</td>
+    <td>String</td>
+    <td>The field where the count is stored. Can be a nested field like <code>'counts.all'</code></td>
+  </tr>
+  <tr>
+    <td>Selector</td>
+    <td>Mongo selector (optional)</td>
+    <td>Can be used to filter the counted documents. <code>[referenceField]:parent._id</code> will always be included though.</td>
+  </tr>
 </table>
 
-## cacheField()
-
+## Collection.cacheField(options)
 ```javascript
 Collection.cacheField({
   fields:['profile.firstName', 'profile.lastName'],
@@ -118,36 +120,47 @@ Collection.cacheField({
 })
 
 ```
-
 <table>
-	<tr>
-		<th>Property</th>
-		<th>Valid values</th>
-		<th>Description</th>
-	</tr>
-	<tr>
-		<td>fields</td>
-		<td>Array of Strings or Object</td>
-		<td>The fields to watch for changes. It can either look like <code>['username', 'profile.email']</code> or <code>{username:1, profile:{email:1}}</code></td>
-	</tr>
-	<tr>
-		<td>cacheField</td>
-		<td>String</td>
-		<td>Where the result is stored. Can be nested like <code>'computed.fullName'</code></td>
-	</tr>
-	<tr>
-		<td>transform</td>
-		<td>Function (optional)</td>
-		<td>The function used to compute the result. If not defined, the default is to return a string of all watched fields concatenated with <code>', '</code></td>
-	</tr>
+  <tr>
+    <th>Property</th>
+    <th>Valid values</th>
+    <th>Description</th>
+  </tr>
+  <tr>
+    <td>fields</td>
+    <td>Array of Strings or Object</td>
+    <td>The fields to watch for changes. It can either look like <code>['username', 'profile.email']</code> or <code>{username:1, profile:{email:1}}</code></td>
+  </tr>
+  <tr>
+    <td>cacheField</td>
+    <td>String</td>
+    <td>Where the result is stored. Can be nested like <code>'computed.fullName'</code></td>
+  </tr>
+  <tr>
+    <td>transform</td>
+    <td>Function (optional)</td>
+    <td>The function used to compute the result. If not defined, the default is to return a string of all watched fields concatenated with <code>', '</code><br>The document provided to the function only contains the fields specified in <code>fields</code></td>
+  </tr>
 </table>
+
+## Automatic migration
+
+```javascript
+import settings from 'meteor/herteby:denormalize'
+settings.autoMigrate = true
+```
+
+One problem with caching is that if you decide to create a new cache on a collection that already contains documents, those documents need to be updated.
+This feature makes it so that whenever cache() is called, it checks against a collection (called _cacheMigrations in the DB) to see wether a migration has been run before with the specific options you gave to cache(). If it has not, it will update all the documents in the collection according to the cache options, and then save the options to _cacheMigrations, so that it won't run again unless you change any of the options. If you later decide to add another field to the cache, it will rerun automatically.
+
 
 ## Nested referenceFields
 For "one" and "inverse", nested referenceFields are simply declared like `referenceField:'nested.reference.field'`
 
 For "many" and "many-inverse", if the referenceField is an Array containing objects, a colon is used to show where the Array starts.
 
-**Example:**
+#### Example:
+
 If the parent doc looks like this:
 ```javascript
 {
@@ -158,9 +171,63 @@ If the parent doc looks like this:
 ```
 The referenceField string should be `'references.users:_id'`
 
+## Recursive caching
+
+You can use the output (the `cacheField`) of one cache function as one of the fields to be cached by another cache function, or even as the referenceField. They will all be updated correctly.
+
+Some examples:
+
+#### Use cacheField() to cache the sum of all cached items from a purchase
+```javascript
+Bills.cacheField({
+  fields:['_items'],
+  cacheField:'_sum',
+  transform(doc){
+    let price = _.sum(_.map(doc._items, 'price'))
+    return price
+  }
+})
+```
+#### Caching the cacheFields of another cache
+```javascript
+Bills.cache({
+  cacheField:'_items',
+  collection:Items,
+  type:'many',
+  referenceField:'itemIds',
+  fields:['name', 'price']
+})
+Customers.cache({
+  cacheField:'_bills',
+  collection:Bills,
+  type:'inverse',
+  referenceField:'customerId',
+  fields:['_sum', '_items']
+})
+```
+#### Using the cacheField of another cache as referenceField
+```javascript
+Customers.cache({
+  cacheField:'_bills2',
+  collection:Bills,
+  type:'inverse',
+  referenceField:'customerId',
+  fields:['itemIds', '_sum']
+})
+Customers.cache({
+  cacheField:'_items',
+  collection:Items,
+  type:'many',
+  referenceField:'_bills2:itemIds',
+  fields:['name', 'price']
+})
+```
+
 ## Testing the package
 
 ```
 meteor test-packages packages/denormalize --driver-package=practicalmeteor:mocha
 ```
-open localhost:3000 in your browser
+(Then open localhost:3000 in your browser)<br>
+The package currently has over 120 tests<br>
+the "slowness warnings" in the results are just due to the asynchronous tests
