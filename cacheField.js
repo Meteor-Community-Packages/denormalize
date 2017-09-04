@@ -32,8 +32,11 @@ Mongo.Collection.prototype.cacheField = function(options) {
 
   collection.after.update((userId, doc, changedFields) => {
     if(_.intersection(changedFields, topFields).length){
-      let val = transform(doc)
+      Meteor.defer(()=>{
+        let val = transform(doc)
+        console.log('CACHEFIELD', val)
         collection.update(doc._id, {$set:{[cacheField]:val}})
+      })
     }
   })  
 }

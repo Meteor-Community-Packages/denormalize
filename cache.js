@@ -214,13 +214,7 @@ Mongo.Collection.prototype.cache = function(options){
     })
 
     childCollection.after.update(function(userId, child, changedFields){
-      if(cacheField == '_bills2'){
-        console.log('UPDATE', child._amount)
-      }
       if(_.intersection(changedFields, topFields).length){
-        if(cacheField == '_bills2'){
-          console.log('Intersection', child._amount)
-        }
         let pickedChild = _.pick(child, childFields)
         let previousId = this.previous && _.get(this.previous, referenceField)
         if(previousId && previousId !== _.get(child, referenceField)){
@@ -230,7 +224,8 @@ Mongo.Collection.prototype.cache = function(options){
           let index = _.findIndex(_.get(parent, cacheField), {_id:child._id})
           if(index > -1){
             if(cacheField == '_bills2'){
-              console.log('exists...', child._amount)
+              console.log('UPDATE', child._amount)
+              console.log('changed fields:', changedFields)
             }
             parentCollection.update(parent._id, {$set:{[cacheField + '.' + index]:pickedChild}})
           } else {

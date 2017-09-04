@@ -168,6 +168,58 @@ If the parent doc looks like this:
 ```
 The referenceField string should be `'references.users:_id'`
 
+## 🔵Recursive caching
+
+You can use the output (the `cacheField`) of one cache function as one of the fields to be cached by another cache function, or even as the referenceField. They will all be updated correctly.
+
+Some examples:
+
+#### Use cacheField() to cache the sum of all cached items from a purchase
+```javascript
+Bills.cacheField({
+  fields:['_items'],
+  cacheField:'_sum',
+  transform(doc){
+    let price = _.sum(_.map(doc._items, 'price'))
+    return price
+  }
+})
+```
+#### Caching the cacheFields of another cache
+```javascript
+Bills.cache({
+  cacheField:'_items',
+  collection:Items,
+  type:'many',
+  referenceField:'itemIds',
+  fields:['name', 'price']
+})
+Customers.cache({
+  cacheField:'_bills',
+  collection:Bills,
+  type:'inverse',
+  referenceField:'customerId',
+  fields:['_sum', '_items']
+})
+```
+#### Using the cacheField of another cache as referenceField
+```javascript
+Customers.cache({
+  cacheField:'_bills2',
+  collection:Bills,
+  type:'inverse',
+  referenceField:'customerId',
+  fields:['itemIds', '_sum']
+})
+Customers.cache({
+  cacheField:'_items',
+  collection:Items,
+  type:'many',
+  referenceField:'_bills2:itemIds',
+  fields:['name', 'price']
+})
+```
+
 ## Testing the package
 
 ```
