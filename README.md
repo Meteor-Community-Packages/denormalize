@@ -168,7 +168,7 @@ If the parent doc looks like this:
 ```
 The referenceField string should be `'references.users:_id'`
 
-## 🔵Recursive caching
+## Recursive caching
 
 You can use the output (the `cacheField`) of one cache function as one of the fields to be cached by another cache function, or even as the referenceField. They will all be updated correctly.
 
@@ -225,4 +225,5 @@ Customers.cache({
 ```
 meteor test-packages packages/denormalize --driver-package=practicalmeteor:mocha
 ```
-open localhost:3000 in your browser
+(Then open localhost:3000 in your browser)
+The "slowness warnings" in the test are just due to the asynchronous tests

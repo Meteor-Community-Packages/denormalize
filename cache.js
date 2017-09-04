@@ -223,10 +223,6 @@ Mongo.Collection.prototype.cache = function(options){
         parentCollection.find({_id:_.get(child, referenceField)}, parentOpts).forEach(parent => {
           let index = _.findIndex(_.get(parent, cacheField), {_id:child._id})
           if(index > -1){
-            if(cacheField == '_bills2'){
-              console.log('UPDATE', child._amount)
-              console.log('changed fields:', changedFields)
-            }
             parentCollection.update(parent._id, {$set:{[cacheField + '.' + index]:pickedChild}})
           } else {
             parentCollection.update(parent._id, {$push:{[cacheField]:pickedChild}})
