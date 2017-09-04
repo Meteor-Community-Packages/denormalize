@@ -22,8 +22,7 @@ Mongo.Collection.prototype.cacheField = function(options) {
   }
 
   function insertHook(userid, doc){
-    let val = transform(doc)
-    collection.update(doc._id, {$set:{[cacheField]:val}})
+    collection.update(doc._id, {$set:{[cacheField]:transform(doc)}})
   }
 
   migrate(collection, insertHook, options)
@@ -33,9 +32,7 @@ Mongo.Collection.prototype.cacheField = function(options) {
   collection.after.update((userId, doc, changedFields) => {
     if(_.intersection(changedFields, topFields).length){
       Meteor.defer(()=>{
-        let val = transform(doc)
-        console.log('CACHEFIELD', val)
-        collection.update(doc._id, {$set:{[cacheField]:val}})
+        collection.update(doc._id, {$set:{[cacheField]:transform(doc)}})
       })
     }
   })  
