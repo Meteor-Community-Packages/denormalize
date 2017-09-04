@@ -1,11 +1,7 @@
 import _ from 'lodash'
-import migrate from './autoMigrate.js'
+import {addMigration, migrate, autoMigrate} from './migrations.js'
 
-let settings = {
-  autoMigrate:false
-}
-
-export default settings
+export default {migrate, autoMigrate}
 
 function flattenFields(object, prefix){
   prefix = prefix || ''
@@ -90,7 +86,7 @@ Mongo.Collection.prototype.cache = function(options){
   }
 
   if(type == 'one'){
-    migrate(parentCollection, oneInsert, options)    
+    addMigration(parentCollection, oneInsert, options)
 
     parentCollection.after.insert(oneInsert)
 
@@ -135,7 +131,7 @@ Mongo.Collection.prototype.cache = function(options){
   }
 
   if(type == 'many'){
-    migrate(parentCollection, manyInsert, options)
+    addMigration(parentCollection, manyInsert, options)
 
     parentCollection.after.insert(manyInsert)
 
@@ -187,7 +183,7 @@ Mongo.Collection.prototype.cache = function(options){
   }
 
   if(type == 'inversed'){
-    migrate(parentCollection, inversedInsert, options)
+    addMigration(parentCollection, inversedInsert, options)
 
     parentCollection.after.insert(inversedInsert)
 
@@ -244,7 +240,7 @@ Mongo.Collection.prototype.cache = function(options){
   }
 
   if(type == 'many-inversed'){
-    migrate(parentCollection, manyInversedInsert, options)
+    addMigration(parentCollection, manyInversedInsert, options)
 
     parentCollection.after.insert(manyInversedInsert)
 

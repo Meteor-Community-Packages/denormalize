@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import migrate from './autoMigrate.js'
+import {addMigration} from './migrations.js'
 
 Mongo.Collection.prototype.cacheCount = function(options) {
   check(options, {
@@ -30,7 +30,7 @@ Mongo.Collection.prototype.cacheCount = function(options) {
     parentCollection.update(parent._id, {$set:{[cacheField]:childCollection.find(select).count()}})
   }
 
-  migrate(parentCollection, insert, options)
+  addMigration(parentCollection, insert, options)
 
   parentCollection.after.insert(insert)
   

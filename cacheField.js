@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import migrate from './autoMigrate.js'
+import {addMigration} from './migrations.js'
 
 Mongo.Collection.prototype.cacheField = function(options) {
 
@@ -25,7 +25,7 @@ Mongo.Collection.prototype.cacheField = function(options) {
     collection.update(doc._id, {$set:{[cacheField]:transform(_.pick(doc, fields))}})
   }
 
-  migrate(collection, insertHook, options)
+  addMigration(collection, insertHook, options)
 
   collection.after.insert(insertHook)
 

@@ -143,16 +143,24 @@ Collection.cacheField({
   </tr>
 </table>
 
-## Automatic migration
+## Migration
 
+If you decide to add a new cache or change the cache options on a collection that already contains documents, those documents need to be updated. There are two options for this:
+
+### migrate(collectionName, cacheField, [selector])
 ```javascript
-import settings from 'meteor/herteby:denormalize'
-settings.autoMigrate = true
+import {migrate} from 'meteor/herteby:denormalize'
+migrate('users', 'fullName')
+migrate('users', 'fullAddress', {fullAddress:{$exists:false}})
 ```
+This updates the specified cacheField for all documents in the collection, or all documents matching the selector. Selector can also be an _id.
 
-One problem with caching is that if you decide to create a new cache on a collection that already contains documents, those documents need to be updated.
-This feature makes it so that whenever cache() is called, it checks against a collection (called _cacheMigrations in the DB) to see wether a migration has been run before with the specific options you gave to cache(). If it has not, it will update all the documents in the collection according to the cache options, and then save the options to _cacheMigrations, so that it won't run again unless you change any of the options. If you later decide to add another field to the cache, it will rerun automatically.
-
+### autoMigrate()
+```javascript
+import {autoMigrate} from 'meteor/herteby:denormalize'
+autoMigrate() //should be called last in your server code, after all caches have been declared
+```
+When `automigrate()` is called, it checks all the caches you have declared against a collection (called _cacheMigrations in the DB) to see wether they need to be migrated. If any do, it will run a migration on them, and then save the options to _cacheMigrations, so that it won't run again unless you change any of the options. If you later for example decide to add another field to the cache, it will rerun automatically!
 
 ## Nested referenceFields
 For "one" and "inverse", nested referenceFields are simply declared like `referenceField:'nested.reference.field'`
@@ -175,7 +183,7 @@ The referenceField string should be `'references.users:_id'`
 
 You can use the output (the `cacheField`) of one cache function as one of the fields to be cached by another cache function, or even as the referenceField. They will all be updated correctly.
 
-Some examples:
+In the examples below, all cache fields start with `_`, which may be a good convention to follow for all caches.
 
 #### Use cacheField() to cache the sum of all cached items from a purchase
 ```javascript

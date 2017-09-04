@@ -1,22 +1,15 @@
 import {Mongo} from 'meteor/mongo'
 import _ from 'lodash'
-import {Migrations} from './autoMigrate.js'
-import settings from './cache.js'
-
-settings.autoMigrate = true
-
-function report(result, expected, path = ''){ //show the exact fields which don't match
-_.each(expected, (val, key) => {
-  if(typeof val == 'object'){
-    report(result[key], val, path + key + '.')
-  } else {
-    if(result[key] !== val){
-      console.log('MISMATCH:', path + key)
-      console.log('Expected:', JSON.stringify(val, null, ' '))
+import {MigrationHistory, migrate, autoMigrate} from './migrations.js'
+function report(result, expected, path = ''){
+  let keys = _.union(_.keys(result), _.keys(expected))
+  _.each(keys, key => {
+    if(!_.isEqual(result[key], expected[key])){
+      console.log('MISMATCH:', key)
+      console.log('Expected:', JSON.stringify(expected[key], null, ' '))
       console.log('     Got:', JSON.stringify(result[key], null, ' '))
     }
-  }
-})
+  })
 }
 function compare(result, expected){
   try{
@@ -34,6 +27,11 @@ Users = new Mongo.Collection('users') //single
 Images = new Mongo.Collection('images') //many
 Tags = new Mongo.Collection('tags') //many-inversed
 Likes = new Mongo.Collection('likes') // count
+Customers = new Mongo.Collection('customers') //recursive caches
+Bills = new Mongo.Collection('bills') //recursive caches
+Items = new Mongo.Collection('items') //recursive caches
+
+
 
 describe('setup', function(){
   it('clear collections', function(){
@@ -43,95 +41,177 @@ describe('setup', function(){
     Images.remove({})
     Tags.remove({})
     Likes.remove({})
-    Migrations.remove({})
+    MigrationHistory.remove({})
   })
-  it('insert user', function(){
-    //This user is inserted before the caches have been declared, so it will need to be migrated
+  it('clear hooks', function(){
+    //Remove all collection hooks so that migration tests work properly
+    _.each([Posts, Comments, Users, Images, Tags, Likes], collection => {
+      collection._hookAspects.insert.after = []
+      collection._hookAspects.update.after = []
+      collection._hookAspects.remove.after = []
+    })
+  })
+  it('insert migrants', function(){
+    //These users inserted before the caches have been declared, so they will need to be migrated
     Users.insert({
-      _id:'migrant',
-      username:'xXSephiroth69Xx',
+      _id:'migrant1',
+      username:'Simon',
+      profile:{
+        first_name:'Simon',
+        last_name:'Herteby'
+      }
+    })
+    Users.insert({
+      _id:'migrant2',
+      username:'bill_gates@microsoft.com',
+      profile:{
+        first_name:'Bill',
+        last_name:'Gates'
+      }
+    })
+    Users.insert({
+      _id:'migrant3',
+      username:'steve_jobs@apple.com',
       profile:{
         first_name:'Steve',
         last_name:'Jobs'
       }
     })
   })
-})
-
-
-
-
-//Set up the caches
-Posts.cache({
-  type:'one',
-  collection:Users,
-  cacheField:'_author',
-  referenceField:'authorId',
-  fields:{
-    username:1, 
-    profile:{
-      first_name:1,
-      last_name:1
-    }
-  },
-})
-Posts.cache({
-  type:'inversed',
-  collection:Comments,
-  cacheField:'_comments',
-  referenceField:'postId',
-  fields:{message:1},
-})
-Posts.cache({
-  type:'many',
-  collection:Images,
-  cacheField:'_images',
-  referenceField:'imageIds',
-  fields:{filename:1}
-})
-Posts.cache({
-  type:'many-inversed',
-  collection:Tags,
-  cacheField:'_tags',
-  referenceField:'postIds',
-  fields:{name:1}
-})
-Posts.cacheCount({
-  collection:Likes,
-  cacheField:'_likes.all',
-  referenceField:'postId'
-})
-Posts.cacheCount({
-  collection:Likes,
-  cacheField:'_likes.sweden',
-  referenceField:'postId',
-  selector:{country:'Sweden'}
-})
-
-Users.cacheField({
-  cacheField:'_defaultTransform',
-  fields:['username', 'profile.first_name', 'profile.last_name']
-})
-Users.cacheField({
-  cacheField:'nested._customTransform',
-  fields:['username', 'profile.first_name', 'profile.last_name'],
-  transform(doc){
-    return [doc.username, _.get(doc, 'profile.first_name'), _.get(doc, 'profile.last_name')]
-  }
-})
-
-describe('Automigration', function(){
-  it('migrated document should have the correct caches', function(){
-    let user = Users.findOne('migrant')
-    compare(user, {
-      _id:'migrant',
-      username:'xXSephiroth69Xx',
-      profile:{
-        first_name:'Steve',
-        last_name:'Jobs'
+  it('Set up caches', function(){
+    Posts.cache({
+      type:'one',
+      collection:Users,
+      cacheField:'_author',
+      referenceField:'authorId',
+      fields:{
+        username:1, 
+        profile:{
+          first_name:1,
+          last_name:1
+        }
       },
-      _defaultTransform:'xXSephiroth69Xx, Steve, Jobs',
-      nested:{_customTransform:['xXSephiroth69Xx', 'Steve', 'Jobs']}
+    })
+    Posts.cache({
+      type:'inversed',
+      collection:Comments,
+      cacheField:'_comments',
+      referenceField:'postId',
+      fields:{message:1},
+    })
+    Posts.cache({
+      type:'many',
+      collection:Images,
+      cacheField:'_images',
+      referenceField:'imageIds',
+      fields:{filename:1}
+    })
+    Posts.cache({
+      type:'many-inversed',
+      collection:Tags,
+      cacheField:'_tags',
+      referenceField:'postIds',
+      fields:{name:1}
+    })
+    Posts.cacheCount({
+      collection:Likes,
+      cacheField:'_likes.all',
+      referenceField:'postId'
+    })
+    Posts.cacheCount({
+      collection:Likes,
+      cacheField:'_likes.sweden',
+      referenceField:'postId',
+      selector:{country:'Sweden'}
+    })
+    Users.cacheField({
+      cacheField:'_defaultTransform',
+      fields:['username', 'profile.first_name', 'profile.last_name']
+    })
+    Users.cacheField({
+      cacheField:'nested._customTransform',
+      fields:['username', 'profile.first_name', 'profile.last_name'],
+      transform(doc){
+        return [doc.username, _.get(doc, 'profile.first_name'), _.get(doc, 'profile.last_name')]
+      }
+    })
+  })
+})
+
+describe('Migration', function(){
+  describe('migrate()', function(){
+    it('user should not have cache before migration', function(){
+      let migrant1 = Users.findOne('migrant1')
+      compare(migrant1, {
+        _id:'migrant1',
+        username:'Simon',
+        profile:{
+          first_name:'Simon',
+          last_name:'Herteby'
+        }
+      })      
+    })
+    it('migrated document should have the correct caches', function(){
+      migrate('users', '_defaultTransform', 'migrant1')
+      migrate('users', 'nested._customTransform', {_id:'migrant1'})
+      let migrant1 = Users.findOne('migrant1')
+      compare(migrant1, {
+        _id:'migrant1',
+        username:'Simon',
+        profile:{
+          first_name:'Simon',
+          last_name:'Herteby'
+        },
+        _defaultTransform:'Simon, Simon, Herteby',
+        nested:{_customTransform:['Simon', 'Simon', 'Herteby']}
+      })
+    })
+    it('documents not matching selector should not have caches', function(){
+      let migrant2 = Users.findOne('migrant2')
+      let migrant3 = Users.findOne('migrant3')
+      compare(migrant2, {
+        _id:'migrant2',
+        username:'bill_gates@microsoft.com',
+        profile:{
+          first_name:'Bill',
+          last_name:'Gates'
+        }
+      })
+      compare(migrant3, {
+        _id:'migrant3',
+        username:'steve_jobs@apple.com',
+        profile:{
+          first_name:'Steve',
+          last_name:'Jobs'
+        }
+      })   
+    })
+  })
+  describe('autoMigrate()', function(){
+    it('migrated documents should have the correct caches', function(){
+      autoMigrate()
+      let migrant2 = Users.findOne('migrant2')
+      let migrant3 = Users.findOne('migrant3')
+      compare(migrant2, {
+        _id:'migrant2',
+        username:'bill_gates@microsoft.com',
+        profile:{
+          first_name:'Bill',
+          last_name:'Gates'
+        },
+        _defaultTransform:'bill_gates@microsoft.com, Bill, Gates',
+        nested:{_customTransform:['bill_gates@microsoft.com', 'Bill', 'Gates']}
+      })
+      compare(migrant3, {
+        _id:'migrant3',
+        username:'steve_jobs@apple.com',
+        profile:{
+          first_name:'Steve',
+          last_name:'Jobs'
+        },
+        _defaultTransform:'steve_jobs@apple.com, Steve, Jobs',
+        nested:{_customTransform:['steve_jobs@apple.com', 'Steve', 'Jobs']}
+      })
     })
   })
 })
@@ -621,7 +701,6 @@ describe('cacheField', function(){
       })
       Meteor.setTimeout(function(){
         let user = Users.findOne('simon')
-        console.log('GET USER')
         try {
           assert.strictEqual(user._defaultTransform, 'Simon89, Simon, Herteby')
           done()
@@ -724,7 +803,6 @@ describe('cacheField', function(){
 //This needs to be put in a test due to async tests
 describe('Prepare for next tests', function(){
   it('clear collections', function(){
-    console.log('CLEAR COLLECTIONS')
     Posts.remove({})
     Comments.remove({})
     Users.remove({})
@@ -732,54 +810,54 @@ describe('Prepare for next tests', function(){
     Tags.remove({})
     Likes.remove({})
   })
+  it('set up caches', function(){
+    Posts.cache({
+      type:'one',
+      collection:Users,
+      cacheField:'caches._author',
+      referenceField:'nested.authorId',
+      fields:{
+        username:1, 
+        profile:{
+          first_name:1,
+          last_name:1
+        }
+      },
+    })
+    Posts.cache({
+      type:'inversed',
+      collection:Comments,
+      cacheField:'caches._comments',
+      referenceField:'nested.postId',
+      fields:{message:1},
+    })
+    Posts.cache({
+      type:'many',
+      collection:Images,
+      cacheField:'caches._images',
+      referenceField:'nested.images:_id',
+      fields:{filename:1}
+    })
+    Posts.cache({
+      type:'many-inversed',
+      collection:Tags,
+      cacheField:'caches._tags',
+      referenceField:'nested.postIds:_id',
+      fields:{name:1}
+    })
+    Posts.cacheCount({
+      collection:Likes,
+      cacheField:'caches._likes.all',
+      referenceField:'nested.postId'
+    })
+    Posts.cacheCount({
+      collection:Likes,
+      cacheField:'caches._likes.sweden',
+      referenceField:'nested.postId',
+      selector:{country:'Sweden'}
+    })
+  })
 })
-
-Posts.cache({
-  type:'one',
-  collection:Users,
-  cacheField:'caches._author',
-  referenceField:'nested.authorId',
-  fields:{
-    username:1, 
-    profile:{
-      first_name:1,
-      last_name:1
-    }
-  },
-})
-Posts.cache({
-  type:'inversed',
-  collection:Comments,
-  cacheField:'caches._comments',
-  referenceField:'nested.postId',
-  fields:{message:1},
-})
-Posts.cache({
-  type:'many',
-  collection:Images,
-  cacheField:'caches._images',
-  referenceField:'nested.images:_id',
-  fields:{filename:1}
-})
-Posts.cache({
-  type:'many-inversed',
-  collection:Tags,
-  cacheField:'caches._tags',
-  referenceField:'nested.postIds:_id',
-  fields:{name:1}
-})
-Posts.cacheCount({
-  collection:Likes,
-  cacheField:'caches._likes.all',
-  referenceField:'nested.postId'
-})
-Posts.cacheCount({
-  collection:Likes,
-  cacheField:'caches._likes.sweden',
-  referenceField:'nested.postId',
-  selector:{country:'Sweden'}
-})
-
 
 describe('Same tests with nested referenceFields and cacheFields!', function(){
   describe('Insert parent - no children', function(){
@@ -1253,57 +1331,53 @@ describe('cacheCount', function(){
 })
 
 
-
-Customers = new Mongo.Collection('customers')
-Bills = new Mongo.Collection('bills')
-Items = new Mongo.Collection('items')
-
-//Option one
-Customers.cache({
-  cacheField:'_bills',
-  collection:Bills,
-  type:'inverse',
-  referenceField:'customerId',
-  fields:['_sum', '_items']
-})
-
-Bills.cache({
-  cacheField:'_items',
-  collection:Items,
-  type:'many',
-  referenceField:'itemIds',
-  fields:['name', 'price']
-})
-//Option two
-Customers.cache({
-  cacheField:'_bills2',
-  collection:Bills,
-  type:'inverse',
-  referenceField:'customerId',
-  fields:['itemIds', '_sum']
-})
-Customers.cache({
-  cacheField:'_items',
-  collection:Items,
-  type:'many',
-  referenceField:'_bills2:itemIds',
-  fields:['name', 'price']
-})
-
-Bills.cacheField({
-  fields:['_items'],
-  cacheField:'_sum',
-  transform(doc){
-    let price = _.sum(_.map(doc._items, 'price'))
-    return price
-  }
-})
-
 describe('Recursive caching!', function(){
   it('clear collections', function(){
     Customers.remove({})
     Bills.remove({})
     Items.remove({})
+  })
+  it('set up caches', function(){
+    //Option one
+    Customers.cache({
+      cacheField:'_bills',
+      collection:Bills,
+      type:'inverse',
+      referenceField:'customerId',
+      fields:['_sum', '_items']
+    })
+
+    Bills.cache({
+      cacheField:'_items',
+      collection:Items,
+      type:'many',
+      referenceField:'itemIds',
+      fields:['name', 'price']
+    })
+    //Option two
+    Customers.cache({
+      cacheField:'_bills2',
+      collection:Bills,
+      type:'inverse',
+      referenceField:'customerId',
+      fields:['itemIds', '_sum']
+    })
+    Customers.cache({
+      cacheField:'_items',
+      collection:Items,
+      type:'many',
+      referenceField:'_bills2:itemIds',
+      fields:['name', 'price']
+    })
+
+    Bills.cacheField({
+      fields:['_items'],
+      cacheField:'_sum',
+      transform(doc){
+        let price = _.sum(_.map(doc._items, 'price'))
+        return price
+      }
+    })
   })
   describe('Insert documents', function(){
     it('All caches should have correct values', function(done){
