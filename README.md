@@ -8,16 +8,16 @@ meteor add herteby:denormalize
 
 In this readme, *parent* always refers to the documents in which the cache is stored, while *child* refers to the documents that will be cached.
 
-**Example:** You have two collections - Users and Roles. The Users store the _id of any Roles they have been assigned. If you want each User to cache information from any Roles that are assigned to it, the Users would be the *parents* and the Roles would be the *children*, and it would be either a *one* or *many* relationship, depending on if a User can have multiple Roles. If you wanted each Role to store a list of all Users which have that role, the Roles would be the *parents* and the Users would be the *children*, and it would be a *inverse* or *many-inverse* relationship.
+**Example:** You have two collections - Users and Roles. The Users store the _id of any Roles they have been assigned. If you want each User to cache information from any Roles that are assigned to it, the Users would be the *parents* and the Roles would be the *children*, and it would be either a *one* or *many* relationship, depending on if a User can have multiple Roles. If you wanted each Role to store a list of all Users which have that role, the Roles would be the *parents* and the Users would be the *children*, and it would be an *inverse* or *many-inverse* relationship.
 ## Collection.cache(options)
 
 ```javascript
-ParentCollection.cache({
+Posts.cache({
   type:'one',
-  collection:ChildCollection,
-  fields:['name','title'],
-  referenceField:'childId',
-  cacheField:'_cache'
+  collection:Meteor.users,
+  fields:['username', 'profile.firstName', 'profile.lastName'],
+  referenceField:'authorId',
+  cacheField:'author'
 })
 ```
 
@@ -71,10 +71,10 @@ ParentCollection.cache({
 ## Collection.cacheCount(options)
 
 ```javascript
-ParentCollection.cacheCount({
-  collection:ChildCollection,
-  referenceField:'parentId',
-  cacheField:'count',
+TodoList.cacheCount({
+  collection:Todos,
+  referenceField:'listId',
+  cacheField:'counts.important',
   selector:{done:null, priority:{$lt:3}}
 })
 ```
@@ -103,15 +103,20 @@ cacheCount() can be used on "inverse" and "many-inverse" relationships
     <td>The field where the count is stored. Can be a nested field like <code>'counts.all'</code></td>
   </tr>
   <tr>
-    <td>Selector</td>
+    <td>selector</td>
     <td>Mongo selector (optional)</td>
     <td>Can be used to filter the counted documents. <code>[referenceField]:parent._id</code> will always be included though.</td>
+  </tr>
+  <tr>
+    <td>bypassSchema</td>
+    <td>Boolean (optional)</td>
+    <td>If set to true, it will bypass any <a href="https://github.com/aldeed/meteor-collection2">collection2</a> schema that may exist. Otherwise you must add the cacheField to your schema.</td>
   </tr>
 </table>
 
 ## Collection.cacheField(options)
 ```javascript
-Collection.cacheField({
+Users.cacheField({
   fields:['profile.firstName', 'profile.lastName'],
   cacheField:'fullname',
   transform(doc){
@@ -141,6 +146,11 @@ Collection.cacheField({
     <td>Function (optional)</td>
     <td>The function used to compute the result. If not defined, the default is to return a string of all watched fields concatenated with <code>', '</code><br>The document provided to the function only contains the fields specified in <code>fields</code></td>
   </tr>
+  <tr>
+    <td>bypassSchema</td>
+    <td>Boolean (optional)</td>
+    <td>If set to true, it will bypass any <a href="https://github.com/aldeed/meteor-collection2">collection2</a> schema that may exist. Otherwise you must add the cacheField to your schema.</td>
+  </tr>
 </table>
 
 ## Migration
@@ -160,7 +170,7 @@ This updates the specified cacheField for all documents in the collection, or al
 import {autoMigrate} from 'meteor/herteby:denormalize'
 autoMigrate() //should be called last in your server code, after all caches have been declared
 ```
-When `automigrate()` is called, it checks all the caches you have declared against a collection (called _cacheMigrations in the DB) to see wether they need to be migrated. If any do, it will run a migration on them, and then save the options to _cacheMigrations, so that it won't run again unless you change any of the options. If you later for example decide to add another field to the cache, it will rerun automatically!
+When `autoMigrate()` is called, it checks all the caches you have declared against a collection (called _cacheMigrations in the DB) to see wether they need to be migrated. If any do, it will run a migration on them, and then save the options to _cacheMigrations, so that it won't run again unless you change any of the options. If you later for example decide to add another field to the cache, it will rerun automatically! One thing it does not do is remove the old cacheField, if you were to change the name or remove the cache. That part you have to do yourself.
 
 ## Nested referenceFields
 For "one" and "inverse", nested referenceFields are simply declared like `referenceField:'nested.reference.field'`
@@ -183,7 +193,7 @@ The referenceField string should be `'references.users:_id'`
 
 You can use the output (the `cacheField`) of one cache function as one of the fields to be cached by another cache function, or even as the referenceField. They will all be updated correctly.
 
-In the examples below, all cache fields start with `_`, which may be a good convention to follow for all caches.
+In the examples below, all cache fields start with `_`, which may be a good convention to follow for all your caches.
 
 #### Use cacheField() to cache the sum of all cached items from a purchase
 ```javascript
@@ -191,8 +201,7 @@ Bills.cacheField({
   fields:['_items'],
   cacheField:'_sum',
   transform(doc){
-    let price = _.sum(_.map(doc._items, 'price'))
-    return price
+    return _.sum(_.map(doc._items, 'price'))
   }
 })
 ```

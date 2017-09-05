@@ -1,7 +1,7 @@
 import _ from 'lodash'
 import {addMigration, migrate, autoMigrate} from './migrations.js'
 
-export default {migrate, autoMigrate}
+export {migrate, autoMigrate}
 
 function flattenFields(object, prefix){
   prefix = prefix || ''
