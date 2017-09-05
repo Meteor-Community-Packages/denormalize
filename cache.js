@@ -197,7 +197,6 @@ Mongo.Collection.prototype.cache = function(options){
     childCollection.after.insert(function(userId, child){
       let pickedChild = _.pick(child, childFields)
       if(_.get(child, referenceField)){
-        if(cacheField == '_bills') console.log(cacheField, 'INSERT PUSH', pickedChild)
         parentCollection.update({_id:_.get(child, referenceField)}, {$push:{[cacheField]:pickedChild}})
       }
     })

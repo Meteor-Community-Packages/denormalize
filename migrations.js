@@ -26,7 +26,13 @@ export function migrate(collectionName, cacheField, selector){
   if(!migration){
     throw new Error('no migration found for ' + collectionName + ' - ' + cacheField)
   } else {
-    migration.collection.find(selector || {}).forEach(doc => migration.fn(null, doc))
+    let time = new Date()
+    let n = 0
+    migration.collection.find(selector || {}).forEach(doc => {
+      migration.fn(null, doc)
+      n++
+    })
+    console.log(`migrated ${cacheField} of ${n} docs in ${collectionName + (selector ? ' matching ' + JSON.stringify(selector) : '')}. It took ${new Date() - time}ms`)
   }
 }
 
