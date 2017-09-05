@@ -149,11 +149,7 @@ Mongo.Collection.prototype.cache = function(options){
 
     childCollection.after.insert(function(userId, child){
       let pickedChild = _.pick(child, childFields)
-      let parent = parentCollection.find({[referencePath]:child._id}).forEach(parent => {
-        if(!_.find(parent[cacheField], {_id:child._id})){
-          parentCollection.update(parent._id, {$push:{[cacheField]:pickedChild}})
-        }
-      })
+      parentCollection.update({[referencePath]:child._id}, {$push:{[cacheField]:pickedChild}}, {multi:true})
     })
 
     childCollection.after.update(function(userId, child, changedFields){
@@ -201,11 +197,8 @@ Mongo.Collection.prototype.cache = function(options){
     childCollection.after.insert(function(userId, child){
       let pickedChild = _.pick(child, childFields)
       if(_.get(child, referenceField)){
-        //This is pretty weird: sometimes "update" can trigger before "insert", so we need to check if the child has already been cached
-        let parent = parentCollection.findOne(_.get(child, referenceField), {fields:{[cacheField]:1}})
-        if(!_.find(parent[cacheField], {_id:child._id})){
-          parentCollection.update(parent._id, {$push:{[cacheField]:pickedChild}})
-        }
+        if(cacheField == '_bills') console.log(cacheField, 'INSERT PUSH', pickedChild)
+        parentCollection.update({_id:_.get(child, referenceField)}, {$push:{[cacheField]:pickedChild}})
       }
     })
 
@@ -253,13 +246,9 @@ Mongo.Collection.prototype.cache = function(options){
 
     childCollection.after.insert(function(userId, child){
       let references = getNestedReferences(child)
-      if(references.length){
+      if(references.length){        
         let pickedChild = _.pick(child, childFields)
-        parentCollection.find({_id:{$in:references}}, parentOpts).forEach(parent => {
-          if(!_.find(parent[cacheField], {_id:child._id})){ //Pretty weird but necessary. Sometimes "update" can trigger before "insert"
-            parentCollection.update(parent._id, {$push:{[cacheField]:pickedChild}})
-          }
-        })
+        parentCollection.update({_id:{$in:references}}, {$push:{[cacheField]:pickedChild}}, {multi:true})
       }
     })
 
