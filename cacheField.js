@@ -21,6 +21,10 @@ Mongo.Collection.prototype.cacheField = function(options) {
     }
   }
 
+  if(_.includes(topFields, cacheField.split(/[.:]/)[0])){
+    throw new Error('watching the cacheField for changes would cause an infinite loop')
+  }
+
   function insertHook(userid, doc){
     collection.update(doc._id, {$set:{[cacheField]:transform(_.pick(doc, fields))}})
   }

@@ -7,7 +7,7 @@ export const MigrationHistory = new Mongo.Collection('_cacheMigrations')
 let migrations = []
 
 export function addMigration(collection, insertFn, options){
-  let opts = _.cloneDeep(options)
+  let opts = _.clone(options)
   if(opts.collection){ //prevent Error: Converting circular structure to JSON
     opts.collection = opts.collection._name
   }
@@ -36,11 +36,9 @@ export function migrate(collectionName, cacheField, selector){
   }
 }
 
-//Running the insert hook on each document in the collection should always be enough to "migrate" them
 export function autoMigrate(){
   _.each(migrations, migration => {
     if(!MigrationHistory.findOne({collectionName:migration.collectionName, options:migration.options})){
-      //console.log('migrating', migration.collectionName, migration.cacheField)
       migrate(migration.collectionName, migration.cacheField)
       MigrationHistory.insert({
         collectionName:migration.collectionName,

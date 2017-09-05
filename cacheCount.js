@@ -17,6 +17,10 @@ Mongo.Collection.prototype.cacheCount = function(options) {
   let referenceField = options.referenceField
   let watchedFields = _.union([referenceField], _.keys(selector))
 
+  if(referenceField.split(/[.:]/)[0] == cacheField.split(/[.:]/)[0]){
+    throw new Error('referenceField and cacheField must not share the same top field')
+  }
+
   function update(child){
     let ref = _.get(child, referenceField)
     if(ref){

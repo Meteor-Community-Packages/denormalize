@@ -190,6 +190,7 @@ describe('Migration', function(){
   describe('autoMigrate()', function(){
     it('migrated documents should have the correct caches', function(){
       autoMigrate()
+      console.log("(Don't worry about the console log saying 'migrated 0 docs' a bunch of times. That is correct.)")
       let migrant2 = Users.findOne('migrant2')
       let migrant3 = Users.findOne('migrant3')
       compare(migrant2, {
@@ -610,80 +611,80 @@ describe('Type: many-inversed', function(){
       compare(post._tags, tags)
     })
   })
+})
 
-  describe('cacheCount', function(){
-    describe('Insert child matching filter', function(){
-      it('unfiltered count should be 1', function(){
-        Likes.insert({
-          _id:'like1',
-          postId:'post1',
-          country:'Sweden'
-        })
-        let post = Posts.findOne('post1')
-        assert.strictEqual(post._likes.all, 1)
+describe('cacheCount', function(){
+  describe('Insert child matching filter', function(){
+    it('unfiltered count should be 1', function(){
+      Likes.insert({
+        _id:'like1',
+        postId:'post1',
+        country:'Sweden'
       })
-      it('filtered count should be 1', function(){
-        let post = Posts.findOne('post1')
-        assert.strictEqual(post._likes.sweden, 1)
-      })
+      let post = Posts.findOne('post1')
+      assert.strictEqual(post._likes.all, 1)
     })
-    describe('Insert child not matching filter', function(){
-      it('unfiltered count should be 2', function(){
-        Likes.insert({
-          _id:'like2',
-          postId:'post1',
-          country:'Norway'
-        })
-        let post = Posts.findOne('post1')
-        assert.strictEqual(post._likes.all, 2)
-      })
-      it('filtered count should be 1', function(){
-        let post = Posts.findOne('post1')
-        assert.strictEqual(post._likes.sweden, 1)
-      })
+    it('filtered count should be 1', function(){
+      let post = Posts.findOne('post1')
+      assert.strictEqual(post._likes.sweden, 1)
     })
-    describe('Insert new parent', function(){
-      it('unfiltered count should be 2', function(){
-        Likes.insert({
-          _id:'like3',
-          postId:'post6',
-          country:'Sweden'
-        })
-        Likes.insert({
-          _id:'like4',
-          postId:'post6',
-        })
-        Posts.insert({_id:'post6'})
-        let post = Posts.findOne('post6')
-        assert.strictEqual(post._likes.all, 2)
+  })
+  describe('Insert child not matching filter', function(){
+    it('unfiltered count should be 2', function(){
+      Likes.insert({
+        _id:'like2',
+        postId:'post1',
+        country:'Norway'
       })
-      it('filtered count should be 1', function(){
-        let post = Posts.findOne('post6')
-        assert.strictEqual(post._likes.sweden, 1)
-      })
+      let post = Posts.findOne('post1')
+      assert.strictEqual(post._likes.all, 2)
     })
-    describe('Remove child not matching filter', function(){
-      it('unfiltered count should be 1', function(){
-        Likes.remove('like2')
-        let post = Posts.findOne('post1')
-        assert.strictEqual(post._likes.all, 1)
-      })
-      it('filtered count should be 1', function(){
-        let post = Posts.findOne('post1')
-        assert.strictEqual(post._likes.sweden, 1)
-      })
+    it('filtered count should be 1', function(){
+      let post = Posts.findOne('post1')
+      assert.strictEqual(post._likes.sweden, 1)
     })
-    describe('Remove child matching filter', function(){
+  })
+  describe('Insert new parent', function(){
+    it('unfiltered count should be 2', function(){
+      Likes.insert({
+        _id:'like3',
+        postId:'post6',
+        country:'Sweden'
+      })
+      Likes.insert({
+        _id:'like4',
+        postId:'post6',
+      })
+      Posts.insert({_id:'post6'})
+      let post = Posts.findOne('post6')
+      assert.strictEqual(post._likes.all, 2)
+    })
+    it('filtered count should be 1', function(){
+      let post = Posts.findOne('post6')
+      assert.strictEqual(post._likes.sweden, 1)
+    })
+  })
+  describe('Remove child not matching filter', function(){
+    it('unfiltered count should be 1', function(){
+      Likes.remove('like2')
+      let post = Posts.findOne('post1')
+      assert.strictEqual(post._likes.all, 1)
+    })
+    it('filtered count should be 1', function(){
+      let post = Posts.findOne('post1')
+      assert.strictEqual(post._likes.sweden, 1)
+    })
+  })
+  describe('Remove child matching filter', function(){
 
-      it('unfiltered count should be 1', function(){
-        Likes.remove('like1')
-        let post = Posts.findOne('post1')
-        assert.strictEqual(post._likes.all, 0)
-      })
-      it('filtered count should be 1', function(){
-        let post = Posts.findOne('post1')
-        assert.strictEqual(post._likes.sweden, 0)
-      })
+    it('unfiltered count should be 1', function(){
+      Likes.remove('like1')
+      let post = Posts.findOne('post1')
+      assert.strictEqual(post._likes.all, 0)
+    })
+    it('filtered count should be 1', function(){
+      let post = Posts.findOne('post1')
+      assert.strictEqual(post._likes.sweden, 0)
     })
   })
 })
@@ -859,7 +860,7 @@ describe('Prepare for next tests', function(){
   })
 })
 
-describe('Same tests with nested referenceFields and cacheFields!', function(){
+describe('Same tests with nested referenceFields and cacheFields', function(){
   describe('Insert parent - no children', function(){
     it('one cache should not exist', function(){
       Posts.insert({
@@ -1254,84 +1255,84 @@ describe('Same tests with nested referenceFields and cacheFields!', function(){
       })
     })
   })
-describe('cacheCount', function(){
-  describe('Insert child matching filter', function(){
-    it('unfiltered count should be 1', function(){
-      Likes.insert({
-        _id:'like1',
-        nested:{postId:'post1'},
-        country:'Sweden'
+  describe('cacheCount', function(){
+    describe('Insert child matching filter', function(){
+      it('unfiltered count should be 1', function(){
+        Likes.insert({
+          _id:'like1',
+          nested:{postId:'post1'},
+          country:'Sweden'
+        })
+        let post = Posts.findOne('post1')
+        assert.strictEqual(post.caches._likes.all, 1)
       })
-      let post = Posts.findOne('post1')
-      assert.strictEqual(post.caches._likes.all, 1)
-    })
-    it('filtered count should be 1', function(){
-      let post = Posts.findOne('post1')
-      assert.strictEqual(post.caches._likes.sweden, 1)
-    })
-  })
-  describe('Insert child not matching filter', function(){
-    it('unfiltered count should be 2', function(){
-      Likes.insert({
-        _id:'like2',
-        nested:{postId:'post1'},
-        country:'Norway'
+      it('filtered count should be 1', function(){
+        let post = Posts.findOne('post1')
+        assert.strictEqual(post.caches._likes.sweden, 1)
       })
-      let post = Posts.findOne('post1')
-      assert.strictEqual(post.caches._likes.all, 2)
     })
-    it('filtered count should be 1', function(){
-      let post = Posts.findOne('post1')
-      assert.strictEqual(post.caches._likes.sweden, 1)
-    })
-  })
-  describe('Insert new parent', function(){
-    it('unfiltered count should be 2', function(){
-      Likes.insert({
-        _id:'like3',
-        nested:{postId:'post6'},
-        country:'Sweden'
+    describe('Insert child not matching filter', function(){
+      it('unfiltered count should be 2', function(){
+        Likes.insert({
+          _id:'like2',
+          nested:{postId:'post1'},
+          country:'Norway'
+        })
+        let post = Posts.findOne('post1')
+        assert.strictEqual(post.caches._likes.all, 2)
       })
-      Likes.insert({
-        _id:'like4',
-        nested:{postId:'post6'},
+      it('filtered count should be 1', function(){
+        let post = Posts.findOne('post1')
+        assert.strictEqual(post.caches._likes.sweden, 1)
       })
-      Posts.insert({_id:'post6'})
-      let post = Posts.findOne('post6')
-      assert.strictEqual(post.caches._likes.all, 2)
     })
-    it('filtered count should be 1', function(){
-      let post = Posts.findOne('post6')
-      assert.strictEqual(post.caches._likes.sweden, 1)
+    describe('Insert new parent', function(){
+      it('unfiltered count should be 2', function(){
+        Likes.insert({
+          _id:'like3',
+          nested:{postId:'post6'},
+          country:'Sweden'
+        })
+        Likes.insert({
+          _id:'like4',
+          nested:{postId:'post6'},
+        })
+        Posts.insert({_id:'post6'})
+        let post = Posts.findOne('post6')
+        assert.strictEqual(post.caches._likes.all, 2)
+      })
+      it('filtered count should be 1', function(){
+        let post = Posts.findOne('post6')
+        assert.strictEqual(post.caches._likes.sweden, 1)
+      })
     })
-  })
-  describe('Remove child not matching filter', function(){
-    it('unfiltered count should be 1', function(){
-      Likes.remove('like2')
-      let post = Posts.findOne('post1')
-      assert.strictEqual(post.caches._likes.all, 1)
+    describe('Remove child not matching filter', function(){
+      it('unfiltered count should be 1', function(){
+        Likes.remove('like2')
+        let post = Posts.findOne('post1')
+        assert.strictEqual(post.caches._likes.all, 1)
+      })
+      it('filtered count should be 1', function(){
+        let post = Posts.findOne('post1')
+        assert.strictEqual(post.caches._likes.sweden, 1)
+      })
     })
-    it('filtered count should be 1', function(){
-      let post = Posts.findOne('post1')
-      assert.strictEqual(post.caches._likes.sweden, 1)
-    })
-  })
-  describe('Remove child matching filter', function(){
-    it('unfiltered count should be 1', function(){
-      Likes.remove('like1')
-      let post = Posts.findOne('post1')
-      assert.strictEqual(post.caches._likes.all, 0)
-    })
-    it('filtered count should be 1', function(){
-      let post = Posts.findOne('post1')
-      assert.strictEqual(post.caches._likes.sweden, 0)
+    describe('Remove child matching filter', function(){
+      it('unfiltered count should be 1', function(){
+        Likes.remove('like1')
+        let post = Posts.findOne('post1')
+        assert.strictEqual(post.caches._likes.all, 0)
+      })
+      it('filtered count should be 1', function(){
+        let post = Posts.findOne('post1')
+        assert.strictEqual(post.caches._likes.sweden, 0)
+      })
     })
   })
 })
-})
 
 
-describe('Recursive caching!', function(){
+describe('Recursive caching', function(){
   it('clear collections', function(){
     Customers.remove({})
     Bills.remove({})
@@ -1638,10 +1639,10 @@ describe('Recursive caching!', function(){
       })
   })
   describe('remove a child', function(done){
-  it('all caches should be updated with correct values', function(done){
-    Bills.remove('bill1')
-    let expected = {
-      _bills:[
+    it('all caches should be updated with correct values', function(done){
+      Bills.remove('bill1')
+      let expected = {
+        _bills:[
         {
           _id:'bill2',
           _items:[
@@ -1650,13 +1651,13 @@ describe('Recursive caching!', function(){
           ],
           _sum:65
         }
-      ],
-      _bills2:[
+        ],
+        _bills2:[
         {_id:'bill2', _sum:65, itemIds:['item3', 'item4']}
         ],
         _items:[
-          {_id:'item3', name:'Cake', price:40},
-          {_id:'item4', name:'Tea', price:25},
+        {_id:'item3', name:'Cake', price:40},
+        {_id:'item4', name:'Tea', price:25},
         ]
       }
       Meteor.setTimeout(function(){
