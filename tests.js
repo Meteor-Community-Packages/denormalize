@@ -1338,6 +1338,13 @@ describe('Recursive caching', function(){
     Bills.remove({})
     Items.remove({})
   })
+  it('clear hooks', function(){
+    _.each([Customers, Bills, Items], collection => {
+      collection._hookAspects.insert.after = []
+      collection._hookAspects.update.after = []
+      collection._hookAspects.remove.after = []
+    })
+  })
   it('set up caches', function(){
     //Option one
     Customers.cache({

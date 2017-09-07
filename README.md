@@ -273,9 +273,7 @@ Meteor.users.cache({
   fields:['name', 'profile.avatar']
 })
 ```
-This works fine, but there is one thing you can not do - *cache the cacheField of a document in the same collection* - in this example it would be caching the friends of a users friends.
-
-This would lead to an infinite loop and infinitely growing caches.
+This works fine, but there is one thing you can not do - *cache the cacheField of a document in the same collection* - in this example it would be caching the friends of a users friends. This would lead to an infinite loop and infinitely growing caches.
 
 
 ## When are the caches updated?
