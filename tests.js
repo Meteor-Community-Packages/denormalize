@@ -41,6 +41,8 @@ const UsesWithSchema = new Mongo.Collection('users_with_schema')
 UsesWithSchema.attachSchema(schema)
 const ShoppingCart = new Mongo.Collection('shopping_cart')
 
+const OptionalCacheField = new Mongo.Collection('optional_cache_field')
+
 describe('setup', function(){
   it('clear collections', function(){
     Posts.remove({})
@@ -804,6 +806,28 @@ describe('cacheField', function(){
           done(err)
         }
       }, 100)
+    })
+  })
+  describe('Transform that skips cache update by returning undefined', () => {
+    it('works', () => {
+      OptionalCacheField.cacheField({
+        cacheField:'value',
+        fields:['username'],
+        transform(doc) {
+          if (doc.truthy) {
+            return doc.username;
+          }
+        }
+      })
+
+      /*
+       * This could crash on update with the error:
+       * MongoError: '$set' is empty. You must specify a field like so: {$set: {<field>: ...}}
+       * Reason for this is explained here: https://github.com/meteor/meteor/blob/devel/History.md#breaking-changes-15
+       * 
+       * From 1.6.1 Meteor uses ignoreUndefined connection option: "... when inserted/updated. undefined values are now removed from all Mongo queries and insert/update documents." 
+       * */
+      OptionalCacheField.insert({a: 1})
     })
   })
 })

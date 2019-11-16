@@ -26,7 +26,10 @@ Mongo.Collection.prototype.cacheField = function(options) {
   }
 
   function insert(doc) {
-    collection.update(doc._id, {$set:{[cacheField]:transform(_.pick(doc, fields))}}, options.updateOptions)
+    const value = transform(_.pick(doc, fields));
+    if (!_.isUndefined(value)) {
+      collection.update(doc._id, {$set:{[cacheField]: value}}, options.updateOptions)
+    }
   }
 
   function insertHook(userId, doc){
