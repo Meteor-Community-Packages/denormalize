@@ -7,10 +7,10 @@ Mongo.Collection.prototype.cacheCount = function(options) {
     cacheField:String,
     referenceField:String,
     selector:Match.Optional(Object),
-    bypassSchema:Match.Optional(Boolean)
+    updateOptions:Match.Optional(Object)
   })
 
-  let parentCollection = options.bypassSchema && Package['aldeed:collection2'] ? this._collection : this
+  let parentCollection = this
   let childCollection = options.collection
   let selector = options.selector || {}
   let cacheField = options.cacheField
@@ -25,13 +25,13 @@ Mongo.Collection.prototype.cacheCount = function(options) {
     let ref = _.get(child, referenceField)
     if(ref){
       let select = _.merge(selector, {[referenceField]:ref})
-      parentCollection.update({_id:ref}, {$set:{[cacheField]:childCollection.find(select).count()}})
+      parentCollection.update({_id:ref}, {$set:{[cacheField]:childCollection.find(select).count()}}, options.updateOptions)
     }
   }
 
   function insert(userId, parent){
     let select = _.merge(selector, {[referenceField]:parent._id})
-    parentCollection.update(parent._id, {$set:{[cacheField]:childCollection.find(select).count()}})
+    parentCollection.update(parent._id, {$set:{[cacheField]:childCollection.find(select).count()}}, options.updateOptions)
   }
 
   addMigration(parentCollection, insert, options)

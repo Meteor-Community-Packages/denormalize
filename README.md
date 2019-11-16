@@ -70,9 +70,9 @@ Posts.cache({
     <td>The field on the parent where children are cached. Can be a nested field, like <code>'caches.field'</code>, but it can not be in the same top level field as the referenceField. For <code>type:'one'</code>, cacheField will store a single child. For all others, it will store an array of children.</td>
   </tr>
   <tr>
-    <td>bypassSchema</td>
-    <td>Boolean (optional)</td>
-    <td>If set to true, it will bypass any <a href="https://github.com/aldeed/meteor-collection2">collection2</a> schema that may exist. Otherwise you must add the cacheField to your schema.</td>
+    <td>updateOptions</td>
+    <td>Object (optional)</td>
+    <td>Options that will be passed to <code>Collection.update</code> method, for example: <code>Collection.update(selector, updateExpression, <i>options</i>)</code>. Can be used to bypass <a href="https://github.com/aldeed/meteor-collection2">collection2</a> by passing <code>{bypassCollection2: true}</code>. Otherwise you must add the cacheField to your schema (if you are using collection2).</td>
   </tr>
 </table>
 
@@ -121,9 +121,9 @@ cacheCount() can be used on "inverse" and "many-inverse" relationships
     <td>Can be used to filter the counted documents. <code>[referenceField]:parent._id</code> will always be included though.</td>
   </tr>
   <tr>
-    <td>bypassSchema</td>
-    <td>Boolean (optional)</td>
-    <td>If set to true, it will bypass any <a href="https://github.com/aldeed/meteor-collection2">collection2</a> schema that may exist. Otherwise you must add the cacheField to your schema.</td>
+    <td>updateOptions</td>
+    <td>Object (optional)</td>
+    <td>Options that will be passed to <code>Collection.update</code> method, for example: <code>Collection.update(selector, updateExpression, <i>options</i>)</code>. Can be used to bypass <a href="https://github.com/aldeed/meteor-collection2">collection2</a> by passing <code>{bypassCollection2: true}</code>. Otherwise you must add the cacheField to your schema (if you are using collection2).</td>
   </tr>
 </table>
 
@@ -160,9 +160,9 @@ Meteor.users.cacheField({
     <td>The function used to compute the result. If not defined, the default is to return a string of all watched fields concatenated with <code>', '</code><br>The document provided to the function only contains the fields specified in <code>fields</code></td>
   </tr>
   <tr>
-    <td>bypassSchema</td>
-    <td>Boolean (optional)</td>
-    <td>If set to true, it will bypass any <a href="https://github.com/aldeed/meteor-collection2">collection2</a> schema that may exist. Otherwise you must add the cacheField to your schema.</td>
+    <td>updateOptions</td>
+    <td>Object (optional)</td>
+    <td>Options that will be passed to <code>Collection.update</code> method, for example: <code>Collection.update(selector, updateExpression, <i>options</i>)</code>. Can be used to bypass <a href="https://github.com/aldeed/meteor-collection2">collection2</a> by passing <code>{bypassCollection2: true}</code>. Otherwise you must add the cacheField to your schema (if you are using collection2).</td>
   </tr>
 </table>
 
@@ -311,8 +311,10 @@ Meteor.setTimeout(()=>{
 ## Testing the package
 
 ```
-meteor test-packages packages/denormalize --driver-package=practicalmeteor:mocha
+cd testing
+meteor npm i
+meteor npm run test[:watch]
 ```
 (Then open localhost:3000 in your browser)<br>
-The package currently has over 120 tests<br>
+The package currently has over 130 tests<br>
 Note: The "slowness warnings" in the results are just due to the asynchronous tests

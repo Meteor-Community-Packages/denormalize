@@ -1,0 +1,16 @@
+{
+  "name": "testing",
+  "version": "1.0.0",
+  "description": "",
+  "scripts": {
+    "test": "meteor npm run test:watch -- --once",
+    "test:watch": "cross-env ROOT_URL= MONGO_URL= TEST_CLIENT=0 meteor test-packages --driver-package=meteortesting:mocha ../"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "chai": "^4.2.0",
+    "cross-env": "^6.0.3",
+    "simpl-schema": "^1.5.6"
+  }
+}

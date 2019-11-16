@@ -1,5 +1,7 @@
+import {assert} from 'chai'
 import {Mongo} from 'meteor/mongo'
 import _ from 'lodash'
+import SimpleSchema from 'simpl-schema'
 import {MigrationHistory, migrate, autoMigrate} from './migrations.js'
 function report(result, expected, path = ''){
   let keys = _.union(_.keys(result), _.keys(expected))
@@ -31,7 +33,15 @@ Customers = new Mongo.Collection('customers') //recursive caches
 Bills = new Mongo.Collection('bills') //recursive caches
 Items = new Mongo.Collection('items') //recursive caches
 
+const schema = new SimpleSchema({
+  name: String,
+  last_name: String,
+})
+const UsesWithSchema = new Mongo.Collection('users_with_schema')
+UsesWithSchema.attachSchema(schema)
+const ShoppingCart = new Mongo.Collection('shopping_cart')
 
+const OptionalCacheField = new Mongo.Collection('optional_cache_field')
 
 describe('setup', function(){
   it('clear collections', function(){
@@ -42,6 +52,7 @@ describe('setup', function(){
     Tags.remove({})
     Likes.remove({})
     MigrationHistory.remove({})
+    UsesWithSchema.remove({})
   })
   it('clear hooks', function(){
     //Remove all collection hooks so that migration tests work properly
@@ -795,6 +806,28 @@ describe('cacheField', function(){
           done(err)
         }
       }, 100)
+    })
+  })
+  describe('Transform that skips cache update by returning undefined', () => {
+    it('works', () => {
+      OptionalCacheField.cacheField({
+        cacheField:'value',
+        fields:['username'],
+        transform(doc) {
+          if (doc.truthy) {
+            return doc.username;
+          }
+        }
+      })
+
+      /*
+       * This could crash on update with the error:
+       * MongoError: '$set' is empty. You must specify a field like so: {$set: {<field>: ...}}
+       * Reason for this is explained here: https://github.com/meteor/meteor/blob/devel/History.md#breaking-changes-15
+       * 
+       * From 1.6.1 Meteor uses ignoreUndefined connection option: "... when inserted/updated. undefined values are now removed from all Mongo queries and insert/update documents." 
+       * */
+      OptionalCacheField.insert({a: 1})
     })
   })
 })
@@ -1676,6 +1709,104 @@ describe('Recursive caching', function(){
           done(err)
         }
       }, 100)
+    })
+  })
+
+  describe('updateOptions', () => {
+    beforeEach(() => {
+      UsesWithSchema.remove({})
+      ShoppingCart.remove({})
+    })
+
+    it('bypasses schema - cache', () => {
+      UsesWithSchema.cache({
+        type: 'inversed',
+        collection: ShoppingCart,
+        cacheField: 'carts',
+        fields: ['quantity', 'title'],
+        referenceField: 'userId',
+        updateOptions: {
+          bypassCollection2: true
+        }
+      })
+    
+      const id = UsesWithSchema.insert({
+        name: 'John',
+        last_name: 'Doe'
+      })
+
+      const cartId = ShoppingCart.insert({
+        title: 'Product',
+        quantity: 2,
+        total: 250,
+        userId: id,
+      })
+
+      const res = UsesWithSchema.findOne()
+      compare(_.omit(res, '_id'), {
+        name: 'John',
+        last_name: 'Doe',
+        carts: [{
+          _id: cartId,
+          title: 'Product',
+          quantity: 2
+        }]
+      })
+    })
+
+    it('bypasses schema - cacheCount', () => {
+      UsesWithSchema.cacheCount({
+        collection: ShoppingCart,
+        cacheField: 'cartsCount',
+        referenceField: 'userId',
+        updateOptions: {
+          bypassCollection2: true
+        }
+      })
+    
+      const id = UsesWithSchema.insert({
+        name: 'John',
+        last_name: 'Doe'
+      })
+
+      const cartId = ShoppingCart.insert({
+        title: 'Product',
+        quantity: 2,
+        total: 250,
+        userId: id,
+      })
+
+      const res = UsesWithSchema.findOne()
+      compare(_.omit(res, '_id', 'carts'), {
+        name: 'John',
+        last_name: 'Doe',
+        cartsCount: 1
+      })
+    })
+
+    it('bypasses schema - cacheField', () => {
+      UsesWithSchema.cacheField({
+        fields: ['name', 'last_name'],
+        cacheField: 'full_name',
+        transform({name, last_name}) {
+          return `${name} ${last_name}`
+        },
+        updateOptions: {
+          bypassCollection2: true
+        }
+      })
+    
+      UsesWithSchema.insert({
+        name: 'John',
+        last_name: 'Doe'
+      })
+
+      const res = UsesWithSchema.findOne()
+      compare(_.omit(res, '_id', 'carts', 'cartsCount'), {
+        name: 'John',
+        last_name: 'Doe',
+        full_name: 'John Doe',
+      })
     })
   })
 })
