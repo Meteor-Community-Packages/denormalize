@@ -11,7 +11,7 @@ Package.describe({
 })
 
 Npm.depends({
-  'lodash': '4.17.4',
+  'lodash': '4.17.15',
 })
 
 Package.onUse(function (api) {
@@ -34,9 +34,9 @@ Package.onTest(function (api) {
     'ecmascript',
     'mongo',
     'check',
+    'aldeed:collection2@3.0.3',
     'matb33:collection-hooks@0.8.4',
-    'practicalmeteor:mocha',
-    'practicalmeteor:chai'
+    'meteortesting:mocha'
   ])
 
   api.addFiles('tests.js', 'server')

@@ -7,10 +7,10 @@ Mongo.Collection.prototype.cacheField = function(options) {
     cacheField:String,
     fields:[String],
     transform:Match.Optional(Function),
-    bypassSchema:Match.Optional(Boolean)
+    updateOptions:Match.Optional(Object)
   })
 
-  let collection = options.bypassSchema && Package['aldeed:collection2'] ? this._collection : this
+  let collection = this
   let cacheField = options.cacheField
   let fields = options.fields
   let topFields = _.uniq(_.map(fields, field => field.split('.')[0]))
@@ -25,8 +25,12 @@ Mongo.Collection.prototype.cacheField = function(options) {
     throw new Error('watching the cacheField for changes would cause an infinite loop')
   }
 
-  function insertHook(userid, doc){
-    collection.update(doc._id, {$set:{[cacheField]:transform(_.pick(doc, fields))}})
+  function insert(doc) {
+    collection.update(doc._id, {$set:{[cacheField]:transform(_.pick(doc, fields))}}, options.updateOptions)
+  }
+
+  function insertHook(userId, doc){
+    insert(doc);
   }
 
   addMigration(collection, insertHook, options)
@@ -36,7 +40,7 @@ Mongo.Collection.prototype.cacheField = function(options) {
   collection.after.update((userId, doc, changedFields) => {
     if(_.intersection(changedFields, topFields).length){
       Meteor.defer(()=>{
-        collection.update(doc._id, {$set:{[cacheField]:transform(_.pick(doc, fields))}})
+        insert(doc)
       })
     }
   })  
