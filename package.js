@@ -35,8 +35,7 @@ Package.onTest(function (api) {
     'mongo',
     'check',
     'matb33:collection-hooks@0.8.4',
-    'practicalmeteor:mocha',
-    'practicalmeteor:chai'
+    'meteortesting:mocha',
   ])
 
   api.addFiles('tests.js', 'server')
