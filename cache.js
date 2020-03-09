@@ -112,7 +112,11 @@ Mongo.Collection.prototype.cache = function(options){
     childCollection.after.update(function(userId, child, changedFields){
       if(_.intersection(changedFields, topFields).length){
         let pickedChild = _.pick(child, childFields)
-        parentCollection.update({[referenceField]:child._id}, {$set:{[cacheField]:pickedChild}}, {multi:true})
+        // test if the object has been modified
+        let previousPickedChild = _.pick(this.previous, childFields);
+        if (!_.isEqual(previousPickedChild, pickedChild)){
+          parentCollection.update({[referenceField]:child._id}, {$set:{[cacheField]:pickedChild}}, {multi:true})
+        }
       }
     })
 
