@@ -43,12 +43,12 @@ Mongo.Collection.prototype.cacheCount = function(options) {
     update(child)
   })
 
-  childCollection.after.update((userId, child, changedFields) => {
+  childCollection.after.update(function(userId, child, changedFields) {
     if(_.intersection(changedFields, topFields).length){
       update(child)
       update(this.previous)
     }
-  })
+  }, { fetchPrevious: true })
 
   childCollection.after.remove((userId, child) => {
     update(child)
