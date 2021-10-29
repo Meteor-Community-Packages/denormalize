@@ -1,4 +1,5 @@
 import {Mongo} from 'meteor/mongo'
+import { assert } from 'chai';
 import _ from 'lodash'
 import {MigrationHistory, migrate, autoMigrate} from './migrations.js'
 function report(result, expected, path = ''){
@@ -30,7 +31,6 @@ Likes = new Mongo.Collection('likes') // count
 Customers = new Mongo.Collection('customers') //recursive caches
 Bills = new Mongo.Collection('bills') //recursive caches
 Items = new Mongo.Collection('items') //recursive caches
-
 
 
 describe('setup', function(){
