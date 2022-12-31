@@ -18,7 +18,7 @@ const npmPackages = {
 Package.onUse(function (api) {
   Npm.depends(npmPackages);
 
-  api.versionsFrom('1.5')
+  api.versionsFrom('1.12.1')
   api.use([
     'ecmascript',
     'mongo',
