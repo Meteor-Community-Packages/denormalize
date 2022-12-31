@@ -26,7 +26,13 @@ Mongo.Collection.prototype.cacheField = function(options) {
   }
 
   function insertHook(userid, doc){
-    collection.update(doc._id, {$set:{[cacheField]:transform(_.pick(doc, fields))}})
+    const value = transform(pick(doc, fields));
+
+    if (value === undefined) {
+      return;
+    }
+
+    collection.update(doc._id, {$set:{[cacheField]:value}})
   }
 
   addMigration(collection, insertHook, options)
@@ -36,7 +42,13 @@ Mongo.Collection.prototype.cacheField = function(options) {
   collection.after.update((userId, doc, changedFields) => {
     if(_.intersection(changedFields, topFields).length){
       Meteor.defer(()=>{
-        collection.update(doc._id, {$set:{[cacheField]:transform(_.pick(doc, fields))}})
+        const value = transform(pick(doc, fields));
+
+        if (value === undefined) {
+          return;
+        }
+
+        collection.update(doc._id, {$set:{[cacheField]:value}})
       })
     }
   })  
