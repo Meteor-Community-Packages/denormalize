@@ -1,6 +1,6 @@
 Package.describe({
   name: 'herteby:denormalize',
-  version: '0.6.6',
+  version: '0.6.7',
   // Brief, one-line summary of the package.
   summary: 'Simple denormalization for Meteor',
   // URL to the Git repository containing the source code for this package.
@@ -23,7 +23,7 @@ Package.onUse(function (api) {
     'ecmascript',
     'mongo',
     'check',
-    'matb33:collection-hooks@1.1.0'
+    'matb33:collection-hooks@1.2.0'
   ])
 
   api.mainModule('cache.js', 'server')
@@ -42,7 +42,7 @@ Package.onTest(function (api) {
     'ecmascript',
     'mongo',
     'check',
-    'matb33:collection-hooks@1.1.0'
+    'matb33:collection-hooks@1.2.0'
   ])
 
   api.use(["meteortesting:mocha"]);

@@ -40,7 +40,7 @@ Mongo.Collection.prototype.cache = function(options){
     throw new Error('referenceField and cacheField must not share the same top field')
   }
 
-  if(!_.isArray(watchedFields)){
+  if(!Array.isArray(watchedFields)){
     watchedFields = flattenFields(watchedFields)
   }
 
@@ -119,7 +119,7 @@ Mongo.Collection.prototype.cache = function(options){
     childCollection.after.remove(function(userId, child){
       parentCollection.update({[referenceField]:child._id}, {$unset:{[cacheField]:1}}, {multi:true})
     })
-  } 
+  }
 
   else if(type == 'many'){
     let insert = function insert(userId, parent){
@@ -239,7 +239,7 @@ Mongo.Collection.prototype.cache = function(options){
 
     childCollection.after.insert(function(userId, child){
       let references = getNestedReferences(child)
-      if(references.length){        
+      if(references.length){
         let pickedChild = _.pick(child, childFields)
         parentCollection.update({_id:{$in:references}}, {$push:{[cacheField]:pickedChild}}, {multi:true})
       }
