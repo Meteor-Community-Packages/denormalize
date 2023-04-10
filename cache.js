@@ -1,5 +1,6 @@
+import {addMigration, autoMigrate, migrate} from './migrations.js'
+
 import _ from 'lodash'
-import {addMigration, migrate, autoMigrate} from './migrations.js'
 
 export {migrate, autoMigrate}
 
@@ -214,7 +215,7 @@ Mongo.Collection.prototype.cache = function(options){
           }
         })
       }
-    })
+    }, { fetchPrevious: true })
 
     childCollection.after.remove(function(userId, child){
       parentCollection.update({_id:_.get(child, referenceField)}, {$pull:{[cacheField]:{_id:child._id}}})
@@ -265,7 +266,7 @@ Mongo.Collection.prototype.cache = function(options){
           })
         }
       }
-    })
+    }, { fetchPrevious: true })
 
     childCollection.after.remove(function(userId, child){
       let references = getNestedReferences(child)
