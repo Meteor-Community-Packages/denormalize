@@ -33,11 +33,11 @@ Mongo.Collection.prototype.cacheField = function(options) {
 
   collection.after.insert(insertHook)
 
-  collection.after.update((userId, doc, changedFields) => {
+  collection.after.update(function (userId, doc, changedFields) {
     if(_.intersection(changedFields, topFields).length){
-      Meteor.defer(()=>{
+      Meteor.defer(Meteor.bindEnvironment(function () {
         collection.update(doc._id, {$set:{[cacheField]:transform(_.pick(doc, fields))}})
-      })
+      }))
     }
   })  
 }
