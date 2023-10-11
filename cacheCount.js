@@ -16,6 +16,7 @@ Mongo.Collection.prototype.cacheCount = function(options) {
   let cacheField = options.cacheField
   let referenceField = options.referenceField
   let watchedFields = _.union([referenceField], _.keys(selector))
+  const topFields = _.uniq(watchedFields.map(field => field.split('.')[0]));
 
   if(referenceField.split(/[.:]/)[0] == cacheField.split(/[.:]/)[0]){
     throw new Error('referenceField and cacheField must not share the same top field')
@@ -42,12 +43,12 @@ Mongo.Collection.prototype.cacheCount = function(options) {
     update(child)
   })
 
-  childCollection.after.update((userId, child, changedFields) => {
-    if(_.intersection(changedFields, watchedFields).length){
+  childCollection.after.update(function(userId, child, changedFields) {
+    if(_.intersection(changedFields, topFields).length){
       update(child)
       update(this.previous)
     }
-  })
+  }, { fetchPrevious: true })
 
   childCollection.after.remove((userId, child) => {
     update(child)
