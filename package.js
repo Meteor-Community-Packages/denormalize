@@ -1,6 +1,6 @@
 Package.describe({
   name: 'herteby:denormalize',
-  version: '0.6.5',
+  version: '0.6.7',
   // Brief, one-line summary of the package.
   summary: 'Simple denormalization for Meteor',
   // URL to the Git repository containing the source code for this package.
@@ -10,17 +10,20 @@ Package.describe({
   documentation: 'README.md'
 })
 
-Npm.depends({
-  'lodash': '4.17.4',
-})
+const npmPackages = {
+  'lodash': '4.17.21',
+};
+
 
 Package.onUse(function (api) {
-  api.versionsFrom('1.5')
+  Npm.depends(npmPackages);
+
+  api.versionsFrom('1.12.1')
   api.use([
     'ecmascript',
     'mongo',
     'check',
-    'matb33:collection-hooks@0.8.4'
+    'matb33:collection-hooks@1.2.0'
   ])
 
   api.mainModule('cache.js', 'server')
@@ -29,14 +32,21 @@ Package.onUse(function (api) {
 })
 
 Package.onTest(function (api) {
+  Npm.depends({
+    ...npmPackages,
+    chai: "4.3.4"
+  });
+
   api.use([
     'herteby:denormalize',
     'ecmascript',
     'mongo',
     'check',
-    'matb33:collection-hooks@0.8.4',
     'meteortesting:mocha',
+    'matb33:collection-hooks@1.2.0'
   ])
+
+  api.use(["meteortesting:mocha"]);
 
   api.addFiles('tests.js', 'server')
 })

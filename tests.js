@@ -1,9 +1,10 @@
-import {Mongo} from 'meteor/mongo'
+import { Mongo } from 'meteor/mongo'
+import { assert } from 'chai'
 import _ from 'lodash'
 const chai = require('chai');
 const assert = chai.assert;
 
-import {MigrationHistory, migrate, autoMigrate} from './migrations.js'
+import { MigrationHistory, migrate, autoMigrate } from './migrations.js'
 function report(result, expected, path = ''){
   let keys = _.union(_.keys(result), _.keys(expected))
   _.each(keys, key => {
@@ -20,7 +21,7 @@ function compare(result, expected){
   } catch(err){
     report(result, expected)
     throw err
-  }  
+  }
 }
 
 
@@ -33,7 +34,6 @@ Likes = new Mongo.Collection('likes') // count
 Customers = new Mongo.Collection('customers') //recursive caches
 Bills = new Mongo.Collection('bills') //recursive caches
 Items = new Mongo.Collection('items') //recursive caches
-
 
 
 describe('setup', function(){
@@ -88,7 +88,7 @@ describe('setup', function(){
       cacheField:'_author',
       referenceField:'authorId',
       fields:{
-        username:1, 
+        username:1,
         profile:{
           first_name:1,
           last_name:1
@@ -152,7 +152,7 @@ describe('Migration', function(){
           first_name:'Simon',
           last_name:'Herteby'
         }
-      })      
+      })
     })
     it('migrated document should have the correct caches', function(){
       migrate('users', '_defaultTransform', 'migrant1')
@@ -187,7 +187,7 @@ describe('Migration', function(){
           first_name:'Steve',
           last_name:'Jobs'
         }
-      })   
+      })
     })
   })
   describe('autoMigrate()', function(){
@@ -272,7 +272,7 @@ describe('Type: one', function(){
       compare(post._author, user)
     })
   })
-  
+
   describe('Update parent referenceField', function(){
     it('cache should reflect the new child', function(){
       Users.insert({
@@ -296,7 +296,7 @@ describe('Type: one', function(){
       assert.isUndefined(post._author)
     })
   })
-  describe('Insert another parent', function(){ 
+  describe('Insert another parent', function(){
     it('new parent should have child in cache', function(){
       Posts.insert({
         _id:'post2',
@@ -821,7 +821,7 @@ describe('Prepare for next tests', function(){
       cacheField:'caches._author',
       referenceField:'nested.authorId',
       fields:{
-        username:1, 
+        username:1,
         profile:{
           first_name:1,
           last_name:1
@@ -890,7 +890,7 @@ describe('Same tests with nested referenceFields and cacheFields', function(){
       let post = Posts.findOne('post1')
       assert.isArray(post.caches._tags)
       assert.strictEqual(post.caches._tags.length, 0)
-    })  
+    })
   })
   describe('Type: one', function(){
     describe('Insert child', function(){
