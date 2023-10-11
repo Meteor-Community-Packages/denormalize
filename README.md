@@ -311,8 +311,9 @@ Meteor.setTimeout(()=>{
 ## Testing the package
 
 ```
-meteor test-packages packages/denormalize --driver-package=practicalmeteor:mocha
+cd packages/denormalize
+npm run test
 ```
-(Then open localhost:3000 in your browser)<br>
+The tests will be run in the console<br>
 The package currently has over 120 tests<br>
 Note: The "slowness warnings" in the results are just due to the asynchronous tests

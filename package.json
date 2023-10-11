@@ -1,0 +1,8 @@
+{
+    "scripts": {
+        "test": "meteor test-packages ./ --driver-package meteortesting:mocha --port=3010"
+    },
+    "devDependencies": {
+        "chai": "^4.2.0"
+    }
+}

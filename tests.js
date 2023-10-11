@@ -1,6 +1,8 @@
 import { Mongo } from 'meteor/mongo'
 import { assert } from 'chai'
 import _ from 'lodash'
+const chai = require('chai');
+
 import { MigrationHistory, migrate, autoMigrate } from './migrations.js'
 function report(result, expected, path = ''){
   let keys = _.union(_.keys(result), _.keys(expected))
