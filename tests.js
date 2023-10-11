@@ -2,7 +2,6 @@ import { Mongo } from 'meteor/mongo'
 import { assert } from 'chai'
 import _ from 'lodash'
 const chai = require('chai');
-const assert = chai.assert;
 
 import { MigrationHistory, migrate, autoMigrate } from './migrations.js'
 function report(result, expected, path = ''){
