@@ -1,6 +1,6 @@
 Package.describe({
   name: 'herteby:denormalize',
-  version: '0.6.7',
+  version: '0.7.0-beta.0',
   // Brief, one-line summary of the package.
   summary: 'Simple denormalization for Meteor',
   // URL to the Git repository containing the source code for this package.
