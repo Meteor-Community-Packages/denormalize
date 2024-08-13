@@ -17,12 +17,12 @@ const npmPackages = {
 Package.onUse(function (api) {
   Npm.depends(npmPackages);
 
-  api.versionsFrom('3.0');
+  api.versionsFrom('3.0.1');
   api.use([
     'ecmascript',
     'mongo',
     'check',
-    'matb33:collection-hooks@2.0.0-rc.1',
+    'matb33:collection-hooks@2.0.0-rc.2',
   ]);
 
   api.mainModule('cache.js', 'server');
@@ -41,7 +41,7 @@ Package.onTest(function (api) {
     'ecmascript',
     'mongo',
     'check',
-    'matb33:collection-hooks@2.0.0-rc.1',
+    'matb33:collection-hooks@2.0.0-rc.2',
   ]);
 
   api.use(['meteortesting:mocha']);
