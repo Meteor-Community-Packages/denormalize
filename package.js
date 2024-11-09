@@ -41,7 +41,7 @@ Package.onTest(function (api) {
     'ecmascript',
     'mongo',
     'check',
-    'matb33:collection-hooks@2.0.0-rc.2',
+    'matb33:collection-hooks@2.0.0-rc.4',
   ]);
 
   api.use(['meteortesting:mocha']);

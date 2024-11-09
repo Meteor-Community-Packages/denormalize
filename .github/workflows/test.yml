@@ -7,7 +7,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        meteor: [3.0.1]
+        meteor: [3.0.4]
 
     steps:
       - uses: actions/checkout@v4

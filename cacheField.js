@@ -31,7 +31,7 @@ Mongo.Collection.prototype.cacheField = async function (options) {
 
   async function insertHook(userid, doc) {
     await collection.updateAsync(doc._id, {
-      $set: { [cacheField]: transform(_.pick(doc, fields)) },
+      $set: { [cacheField]: await transform(_.pick(doc, fields)) },
     });
   }
 
@@ -41,9 +41,9 @@ Mongo.Collection.prototype.cacheField = async function (options) {
 
   collection.after.update((userId, doc, changedFields) => {
     if (_.intersection(changedFields, topFields).length) {
-      Meteor.defer(() => {
-        collection.updateAsync(doc._id, {
-          $set: { [cacheField]: transform(_.pick(doc, fields)) },
+      Meteor.defer(async () => {
+        await collection.updateAsync(doc._id, {
+          $set: { [cacheField]: await transform(_.pick(doc, fields)) },
         });
       });
     }

@@ -44,9 +44,9 @@ describe('setup', function () {
   it('clear hooks', function () {
     //Remove all collection hooks so that migration tests work properly
     _.each([Posts, Comments, Users, Images, Tags, Likes], (collection) => {
-      collection._hookAspects.insert.after = [];
-      collection._hookAspects.update.after = [];
-      collection._hookAspects.remove.after = [];
+      collection._hooks.insert.after = [];
+      collection._hooks.update.after = [];
+      collection._hooks.remove.after = [];
     });
   });
   it('insert migrants', async function () {
@@ -1479,9 +1479,9 @@ describe('Recursive caching', function () {
   });
   it('clear hooks', function () {
     _.each([Customers, Bills, Items], (collection) => {
-      collection._hookAspects.insert.after = [];
-      collection._hookAspects.update.after = [];
-      collection._hookAspects.remove.after = [];
+      collection._hooks.insert.after = [];
+      collection._hooks.update.after = [];
+      collection._hooks.remove.after = [];
     });
   });
   it('set up caches', function () {
