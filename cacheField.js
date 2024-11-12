@@ -7,7 +7,8 @@ Mongo.Collection.prototype.cacheField = function(options) {
     cacheField:String,
     fields:[String],
     transform:Match.Optional(Function),
-    bypassSchema:Match.Optional(Boolean)
+    bypassSchema:Match.Optional(Boolean),
+    updateOptions: Match.Optional(Object)
   })
 
   let collection = options.bypassSchema && Package['aldeed:collection2'] ? this._collection : this
@@ -15,6 +16,7 @@ Mongo.Collection.prototype.cacheField = function(options) {
   let fields = options.fields
   let topFields = _.uniq(_.map(fields, field => field.split('.')[0]))
   let transform = options.transform
+  let updateOptions = options.updateOptions
   if(!transform) {
     transform = function(doc) {
       return _.compact(_.map(fields, field => _.get(doc, field))).join(', ')
@@ -26,7 +28,7 @@ Mongo.Collection.prototype.cacheField = function(options) {
   }
 
   function insertHook(userid, doc){
-    collection.update(doc._id, {$set:{[cacheField]:transform(_.pick(doc, fields))}})
+    collection.update(doc._id, {$set:{[cacheField]:transform(_.pick(doc, fields))}}, updateOptions)
   }
 
   addMigration(collection, insertHook, options)
@@ -36,7 +38,7 @@ Mongo.Collection.prototype.cacheField = function(options) {
   collection.after.update((userId, doc, changedFields) => {
     if(_.intersection(changedFields, topFields).length){
       Meteor.defer(()=>{
-        collection.update(doc._id, {$set:{[cacheField]:transform(_.pick(doc, fields))}})
+        collection.update(doc._id, {$set:{[cacheField]:transform(_.pick(doc, fields))}}, updateOptions)
       })
     }
   })  
