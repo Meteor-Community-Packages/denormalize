@@ -33,7 +33,7 @@ Package.onUse(function (api) {
 Package.onTest(function (api) {
   Npm.depends({
     ...npmPackages,
-    chai: '4.3.4',
+    chai: '4.5.0',
   });
 
   api.use([
