@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import { addMigration } from './migrations.js';
+import { check, Match } from 'meteor/check';
 
 Mongo.Collection.prototype.cacheCount = function (options) {
   check(options, {

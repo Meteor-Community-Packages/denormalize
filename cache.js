@@ -1,5 +1,6 @@
 import _ from 'lodash';
 import { addMigration, migrate, autoMigrate } from './migrations.js';
+import { check, Match } from 'meteor/check';
 
 export { migrate, autoMigrate };
 

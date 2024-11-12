@@ -2,6 +2,7 @@ import { Mongo } from 'meteor/mongo';
 import { assert } from 'chai';
 import _ from 'lodash';
 import { MigrationHistory, migrate, autoMigrate } from './migrations.js';
+
 function report(result, expected, path = '') {
   let keys = _.union(_.keys(result), _.keys(expected));
   _.each(keys, (key) => {

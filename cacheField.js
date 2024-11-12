@@ -1,5 +1,7 @@
 import _ from 'lodash';
 import { addMigration } from './migrations.js';
+import { check, Match } from 'meteor/check';
+import { Meteor } from 'meteor/meteor';
 
 Mongo.Collection.prototype.cacheField = async function (options) {
   check(options, {

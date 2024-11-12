@@ -1,6 +1,5 @@
 import _ from 'lodash';
 import { Mongo } from 'meteor/mongo';
-import settings from './cache.js';
 
 export const MigrationHistory = new Mongo.Collection('_cacheMigrations');
 
