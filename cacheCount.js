@@ -19,7 +19,7 @@ Mongo.Collection.prototype.cacheCount = function (options) {
   let selector = options.selector || {};
   let cacheField = options.cacheField;
   let referenceField = options.referenceField;
-  let watchedFields = _.union([referenceField], _.keys(selector));
+  let watchedFields = _.union([referenceField], Object.keys(selector));
 
   if (referenceField.split(/[.:]/)[0] == cacheField.split(/[.:]/)[0]) {
     throw new Error(
