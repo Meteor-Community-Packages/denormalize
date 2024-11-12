@@ -44,11 +44,11 @@ describe('setup', function () {
   });
   it('clear hooks', function () {
     //Remove all collection hooks so that migration tests work properly
-    _.each([Posts, Comments, Users, Images, Tags, Likes], (collection) => {
+    for (const collection of [Posts, Comments, Users, Images, Tags, Likes]) {
       collection._hooks.insert.after = [];
       collection._hooks.update.after = [];
       collection._hooks.remove.after = [];
-    });
+    }
   });
   it('insert migrants', async function () {
     //These users inserted before the caches have been declared, so they will need to be migrated
@@ -1479,11 +1479,11 @@ describe('Recursive caching', function () {
     await Items.removeAsync({});
   });
   it('clear hooks', function () {
-    _.each([Customers, Bills, Items], (collection) => {
+    for (const collection of [Customers, Bills, Items]) {
       collection._hooks.insert.after = [];
       collection._hooks.update.after = [];
       collection._hooks.remove.after = [];
-    });
+    }
   });
   it('set up caches', function () {
     //Option one
