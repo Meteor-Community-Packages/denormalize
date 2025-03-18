@@ -152,11 +152,15 @@ Mongo.Collection.prototype.cache = function (options) {
     childCollection.after.update(async function (userId, child, changedFields) {
       if (_.intersection(changedFields, topFields).length) {
         let pickedChild = _.pick(child, childFields);
-        await parentCollection.updateAsync(
-          { [referenceField]: child._id },
-          { $set: { [cacheField]: pickedChild } },
-          { multi: true },
-        );
+        // test if the object has been modified
+        let previousPickedChild = _.pick(this.previous, childFields);
+        if (!_.isEqual(previousPickedChild, pickedChild)){
+          await parentCollection.updateAsync(
+            { [referenceField]: child._id },
+            { $set: { [cacheField]: pickedChild } },
+            { multi: true },
+          );
+        }
       }
     });
 
