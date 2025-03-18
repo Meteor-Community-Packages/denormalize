@@ -41,7 +41,7 @@ Mongo.Collection.prototype.cacheField = async function (options) {
 
   collection.after.insert(insertHook);
 
-  collection.after.update((userId, doc, changedFields) => {
+  collection.after.update(function (userId, doc, changedFields) {
     if (_.intersection(changedFields, topFields).length) {
       Meteor.defer(async () => {
         await collection.updateAsync(doc._id, {
