@@ -1,0 +1,27 @@
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        meteor: [3.0.4]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Meteor
+        run: |
+          curl https://install.meteor.com | /bin/sh
+
+      - name: Setup tests
+        run: |
+          meteor create --release ${{ matrix.meteor }} --bare test
+          cd test
+          meteor npm i --save chai
+
+      - name: Test
+        working-directory: ./test
+        run: TEST_CLIENT=0 METEOR_PACKAGE_DIRS="../" meteor test-packages --once --driver-package meteortesting:mocha ../
