@@ -1,5 +1,5 @@
+import { addMigration, autoMigrate, migrate } from './migrations.js';
 import _ from 'lodash';
-import { addMigration, migrate, autoMigrate } from './migrations.js';
 import { check, Match } from 'meteor/check';
 
 export { migrate, autoMigrate };
@@ -317,7 +317,7 @@ Mongo.Collection.prototype.cache = function (options) {
             }
           });
       }
-    });
+    }, { fetchPrevious: true });
 
     childCollection.after.remove(async function (userId, child) {
       await parentCollection.updateAsync(

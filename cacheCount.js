@@ -57,12 +57,12 @@ Mongo.Collection.prototype.cacheCount = function (options) {
     await update(child);
   });
 
-  childCollection.after.update(async (userId, child, changedFields) => {
+  childCollection.after.update(async function (userId, child, changedFields) {
     if (_.intersection(changedFields, watchedFields).length) {
       await update(child);
       await update(this.previous);
     }
-  });
+  }, { fetchPrevious: true });
 
   childCollection.after.remove(async (userId, child) => {
     await update(child);
