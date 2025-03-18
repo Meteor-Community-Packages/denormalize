@@ -20,6 +20,7 @@ Mongo.Collection.prototype.cacheCount = function (options) {
   let cacheField = options.cacheField;
   let referenceField = options.referenceField;
   let watchedFields = _.union([referenceField], Object.keys(selector));
+  const topFields = _.uniq(watchedFields.map(field => field.split('.')[0]));
 
   if (referenceField.split(/[.:]/)[0] == cacheField.split(/[.:]/)[0]) {
     throw new Error(
@@ -58,7 +59,7 @@ Mongo.Collection.prototype.cacheCount = function (options) {
   });
 
   childCollection.after.update(async function (userId, child, changedFields) {
-    if (_.intersection(changedFields, watchedFields).length) {
+    if (_.intersection(changedFields, topFields).length) {
       await update(child);
       await update(this.previous);
     }
